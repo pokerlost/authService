@@ -20,7 +20,8 @@ FROM python:3.12-slim-bookworm AS runtime
 ENV PATH=/service/.venv/bin:$PATH \
     PYTHONPATH=/service/app \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    GUNICORN_CMD_ARGS="--bind=0.0.0.0:8000 --workers=2 --timeout=30 --graceful-timeout=30 --keep-alive=5 --forwarded-allow-ips=127.0.0.1 --access-logfile=- --error-logfile=- --capture-output --worker-tmp-dir=/tmp"
 
 WORKDIR /service
 
@@ -30,10 +31,10 @@ RUN groupadd --gid 10001 authservice \
 COPY --from=builder /service/.venv /service/.venv
 COPY app ./app
 COPY alembic ./alembic
-COPY alembic.ini gunicorn.conf.py ./
+COPY alembic.ini ./
 
 USER 10001:10001
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--config", "gunicorn.conf.py", "api.asgi:application"]
+CMD ["gunicorn", "api.application:create_app()", "--worker-class", "uvicorn_worker.UvicornWorker"]

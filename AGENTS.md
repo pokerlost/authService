@@ -16,7 +16,7 @@ SERVICE_PURPOSE: Central authentication and authorization service for the PokerL
 
 SERVICE_ROLE: AUTH
 
-DATA_OWNERSHIP: Source of truth for authentication principals, user authentication accounts, support accounts, master accounts, machine/service principals, credentials, password hashes, account authentication status, sessions, refresh-token state and rotation chains, roles, principal-role assignments, service credentials, JWT signing-key metadata, registered PokerLost services, registered OpenAPI authorization contracts, RPC authorization policies, password-reset state, security-sensitive idempotency records, and authentication/authorization audit events. authService does not own profile, poker, financial, wallet, blockchain, or other service-domain data.
+DATA_OWNERSHIP: Source of truth for authentication principals, user authentication accounts, support accounts, master accounts, machine/service principals, credentials, password hashes, account authentication status, sessions, refresh-token state and rotation chains, roles, each principal's single direct role assignment, service credentials, JWT signing-key metadata, registered PokerLost services, registered OpenAPI authorization contracts, RPC authorization policies, password-reset state, security-sensitive idempotency records, and authentication/authorization audit events. authService does not own profile, poker, financial, wallet, blockchain, or other service-domain data.
 
 OUT_OF_SCOPE: API gateway functionality, reverse proxying, routing requests to backend services, load balancing, poker logic, financial logic, cryptocurrency or wallet logic, user profile data, domain/resource-level authorization decisions belonging to other services, direct access to databases owned by other services, modification of other services' domain data, and authorization based on URLs. authService must not become a mandatory synchronous hop for ordinary client-to-service or service-to-service RPC calls after a token has been issued.
 
@@ -461,15 +461,15 @@ Every endpoint declares one stable deterministic `operation_id`.
 Convention:
 
 ```text
-<resource>_<operation_snake_case>
+<serviceName>.<resource>.<operationCamelCase>
 ```
 
 Examples:
 
 ```text
-accounts_get_account
-holds_reserve_hold
-table_positions_cash_out
+accountService.accounts.getAccount
+fundsService.holds.reserveHold
+pokerService.tablePositions.cashOut
 ```
 
 Paths, operation IDs, JSON field names, requiredness, result schemas, discriminators, and error

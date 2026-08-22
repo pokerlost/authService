@@ -20,6 +20,27 @@ database:
   poolTimeoutSeconds: 10
   commandTimeoutSeconds: 30
 
+password:
+  timeCost: 3
+  memoryCostKib: 65536
+  parallelism: 4
+  hashLength: 32
+  saltLength: 16
+
+jwt:
+  issuer: authService
+  humanAudience: authService
+  accessTokenTtlSeconds: 600
+  clockSkewSeconds: 30
+  activeKid: key-20260822-a
+  activePrivateKeyPath: /run/secrets/pokerlost/auth/active-private.pem
+  retainedPublicKeyDirectory: /run/secrets/pokerlost/auth/public
+  jwksCacheTtlSeconds: 60
+  existingSigningSecret: authservice-signing
+  signingPrivateKeySecretItem: active-private.pem
+  publicKeySecretItems:
+    - key-20260822-a.pem
+
 logfire:
   sendToLogfire: true
   consoleEnabled: true

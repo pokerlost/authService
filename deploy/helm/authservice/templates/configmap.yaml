@@ -14,10 +14,29 @@ data:
   AUTH_DATABASE__MAX_OVERFLOW: {{ .Values.database.maxOverflow | quote }}
   AUTH_DATABASE__POOL_TIMEOUT_SECONDS: {{ .Values.database.poolTimeoutSeconds | quote }}
   AUTH_DATABASE__COMMAND_TIMEOUT_SECONDS: {{ .Values.database.commandTimeoutSeconds | quote }}
+  AUTH_PASSWORD__TIME_COST: {{ .Values.password.timeCost | quote }}
+  AUTH_PASSWORD__MEMORY_COST_KIB: {{ .Values.password.memoryCostKib | quote }}
+  AUTH_PASSWORD__PARALLELISM: {{ .Values.password.parallelism | quote }}
+  AUTH_PASSWORD__HASH_LENGTH: {{ .Values.password.hashLength | quote }}
+  AUTH_PASSWORD__SALT_LENGTH: {{ .Values.password.saltLength | quote }}
+  AUTH_JWT__ISSUER: {{ .Values.jwt.issuer | quote }}
+  AUTH_JWT__HUMAN_AUDIENCE: {{ .Values.jwt.humanAudience | quote }}
+  AUTH_JWT__ACCESS_TOKEN_TTL_SECONDS: {{ .Values.jwt.accessTokenTtlSeconds | quote }}
+  AUTH_JWT__CLOCK_SKEW_SECONDS: {{ .Values.jwt.clockSkewSeconds | quote }}
+  AUTH_JWT__ACTIVE_KID: {{ .Values.jwt.activeKid | quote }}
+  AUTH_JWT__ACTIVE_PRIVATE_KEY_PATH: {{ .Values.jwt.activePrivateKeyPath | quote }}
+  AUTH_JWT__RETAINED_PUBLIC_KEY_DIRECTORY: {{ .Values.jwt.retainedPublicKeyDirectory | quote }}
+  AUTH_JWT__JWKS_CACHE_TTL_SECONDS: {{ .Values.jwt.jwksCacheTtlSeconds | quote }}
   AUTH_LOGFIRE__SEND_TO_LOGFIRE: {{ .Values.logfire.sendToLogfire | quote }}
   AUTH_LOGFIRE__CONSOLE_ENABLED: {{ .Values.logfire.consoleEnabled | quote }}
-  GUNICORN_WORKERS: {{ .Values.gunicorn.workers | quote }}
-  GUNICORN_TIMEOUT: {{ .Values.gunicorn.timeout | quote }}
-  GUNICORN_GRACEFUL_TIMEOUT: {{ .Values.gunicorn.gracefulTimeout | quote }}
-  GUNICORN_KEEPALIVE: {{ .Values.gunicorn.keepalive | quote }}
-  GUNICORN_FORWARDED_ALLOW_IPS: {{ .Values.gunicorn.forwardedAllowIps | quote }}
+  GUNICORN_CMD_ARGS: >-
+    --bind=0.0.0.0:{{ .Values.http.port }}
+    --workers={{ .Values.gunicorn.workers }}
+    --timeout={{ .Values.gunicorn.timeout }}
+    --graceful-timeout={{ .Values.gunicorn.gracefulTimeout }}
+    --keep-alive={{ .Values.gunicorn.keepalive }}
+    --forwarded-allow-ips={{ .Values.gunicorn.forwardedAllowIps }}
+    --access-logfile=-
+    --error-logfile=-
+    --capture-output
+    --worker-tmp-dir=/tmp

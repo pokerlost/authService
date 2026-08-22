@@ -7,4 +7,6 @@ __pycache__/
 *.egg-info/
 dist/
 
-.idea/
+idea/
+
+.local-secrets/

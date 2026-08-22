@@ -7,7 +7,7 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.types import get_request_context
+from api.request_context import get_correlation_id, get_request_id
 
 
 class DatabaseUnavailableError(Exception):
@@ -15,14 +15,13 @@ class DatabaseUnavailableError(Exception):
 
 
 async def handle_database_unavailable(request: Request, exception: Exception) -> JSONResponse:
-    """Return the readiness-specific unavailable response."""
+    """Return a sanitized dependency-unavailable response."""
     if not isinstance(exception, DatabaseUnavailableError):
         raise TypeError("Unexpected exception registered as DatabaseUnavailableError")
-    context = get_request_context(request)
     logfire.warn(
-        "PostgreSQL readiness probe failed",
-        request_id=str(context.request_id),
-        correlation_id=context.correlation_id,
+        "PostgreSQL connectivity failed",
+        request_id=get_request_id(request),
+        correlation_id=get_correlation_id(request),
         _exc_info=exception,
     )
     return JSONResponse(
@@ -32,7 +31,6 @@ async def handle_database_unavailable(request: Request, exception: Exception) ->
             "result": None,
             "error": "AUTH_DATABASE_UNAVAILABLE",
             "errorMessage": "Required database is unavailable",
-            "requestId": str(context.request_id),
         },
     )
 
@@ -41,11 +39,10 @@ async def handle_database_error(request: Request, exception: Exception) -> JSONR
     """Sanitize an unexpected SQLAlchemy failure."""
     if not isinstance(exception, SQLAlchemyError):
         raise TypeError("Unexpected exception registered as SQLAlchemyError")
-    context = get_request_context(request)
     logfire.error(
         "Database operation failed",
-        request_id=str(context.request_id),
-        correlation_id=context.correlation_id,
+        request_id=get_request_id(request),
+        correlation_id=get_correlation_id(request),
         _exc_info=exception,
     )
     return JSONResponse(
@@ -55,6 +52,5 @@ async def handle_database_error(request: Request, exception: Exception) -> JSONR
             "result": None,
             "error": "AUTH_DATABASE_ERROR",
             "errorMessage": "Database operation failed",
-            "requestId": str(context.request_id),
         },
     )

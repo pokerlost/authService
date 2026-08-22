@@ -5,49 +5,35 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from configuration import Settings
-from observability import configure_observability
+from observability import configure_observability, instrument_application
 
 from .errors import configure_exception_handlers
 from .lifespan import create_lifespan
+from .openapi import API_DESCRIPTION, OPENAPI_TAGS, PokerLostAPI
 from .request_context import configure_request_context
-from .resources import create_application_resources
 from .routes import configure_routes
 
 
-def create_application(settings: Settings | None = None) -> FastAPI:
-    """Build a fully configured authService ASGI application."""
+def create_app(settings: Settings | None = None) -> FastAPI:
+    """Build a configured authService application without creating runtime resources."""
     resolved_settings = settings or Settings()
-    resources = create_application_resources(resolved_settings)
+    configure_observability(resolved_settings)
     openapi_enabled = resolved_settings.http.openapi_enabled
 
-    application = FastAPI(
+    application = PokerLostAPI(
         title=resolved_settings.application.service_name,
         version=resolved_settings.application.version,
-        description=(
-            "PokerLost centralized identity, authentication, and coarse-grained "
-            "authorization service."
-        ),
+        description=API_DESCRIPTION,
         debug=False,
-        lifespan=create_lifespan(resources),
+        lifespan=create_lifespan(resolved_settings),
+        openapi_tags=OPENAPI_TAGS,
         openapi_url="/openapi.json" if openapi_enabled else None,
         docs_url="/docs" if openapi_enabled else None,
         redoc_url=None,
     )
-    application.state.resources = resources
 
     configure_request_context(application)
     configure_exception_handlers(application)
     configure_routes(application)
-
-    openapi_schema = application.openapi()
-    openapi_schema["x-pokerlost-service"] = {
-        "id": resolved_settings.application.service_name,
-    }
-    application.openapi_schema = openapi_schema
-
-    configure_observability(
-        application=application,
-        engine=resources.engine,
-        settings=resolved_settings,
-    )
+    instrument_application(application)
     return application

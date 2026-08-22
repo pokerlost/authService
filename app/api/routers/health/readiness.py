@@ -20,7 +20,7 @@ router = APIRouter()
     status_code=status.HTTP_200_OK,
     summary="Check runtime readiness",
     description="Report readiness after a lightweight probe of required PostgreSQL connectivity.",
-    operation_id="health.checkReadiness",
+    operation_id="authService.health.checkReadiness",
     openapi_extra={
         "x-pokerlost-authz": {
             "public": True,

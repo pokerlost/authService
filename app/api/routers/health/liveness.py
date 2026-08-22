@@ -16,7 +16,7 @@ router = APIRouter()
     status_code=status.HTTP_200_OK,
     summary="Check process liveness",
     description="Report whether this application process can handle HTTP requests.",
-    operation_id="health.checkLiveness",
+    operation_id="authService.health.checkLiveness",
     openapi_extra={
         "x-pokerlost-authz": {
             "public": True,

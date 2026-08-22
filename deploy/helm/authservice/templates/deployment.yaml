@@ -67,8 +67,21 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: signing-keys
+              mountPath: /run/secrets/pokerlost/auth
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir:
             medium: Memory
             sizeLimit: 64Mi
+        - name: signing-keys
+          secret:
+            secretName: {{ required "jwt.existingSigningSecret is required" .Values.jwt.existingSigningSecret }}
+            items:
+              - key: {{ required "jwt.signingPrivateKeySecretItem is required" .Values.jwt.signingPrivateKeySecretItem }}
+                path: active-private.pem
+              {{- range .Values.jwt.publicKeySecretItems }}
+              - key: {{ . | quote }}
+                path: public/{{ . }}
+              {{- end }}

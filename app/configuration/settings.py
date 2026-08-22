@@ -1,4 +1,4 @@
-"""Single environment-loading settings root."""
+"""Global immutable service settings."""
 
 from __future__ import annotations
 
@@ -12,11 +12,13 @@ from domain.enums import Environment
 from .application import ApplicationSettings
 from .database import DatabaseSettings
 from .http import HTTPSettings
+from .jwt import JWTSettings
 from .logfire import LogfireSettings
+from .password import PasswordSettings
 
 
 class Settings(BaseSettings):
-    """Validated root configuration loaded from environment and local `.env`."""
+    """Validated root configuration loaded from environment and a local environment file."""
 
     model_config = SettingsConfigDict(
         env_prefix="AUTH_",
@@ -34,6 +36,8 @@ class Settings(BaseSettings):
     database: DatabaseSettings
     http: HTTPSettings = Field(default_factory=HTTPSettings)
     logfire: LogfireSettings = Field(default_factory=LogfireSettings)
+    password: PasswordSettings = Field(default_factory=PasswordSettings)
+    jwt: JWTSettings = Field(default_factory=JWTSettings)
 
     @model_validator(mode="after")
     def validate_production_observability(self) -> Self:

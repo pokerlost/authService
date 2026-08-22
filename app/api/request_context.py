@@ -9,11 +9,25 @@ from uuid import uuid4
 import logfire
 from fastapi import FastAPI, Request, Response
 
-from .types import RequestContext
-
 REQUEST_ID_HEADER = "X-Request-ID"
 CORRELATION_ID_HEADER = "X-Correlation-ID"
 _CORRELATION_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}\Z")
+
+
+def get_request_id(request: Request) -> str:
+    """Return the server-generated request identifier."""
+    request_id = request.state.request_id
+    if not isinstance(request_id, str):
+        raise RuntimeError("Request identifier is not initialized")
+    return request_id
+
+
+def get_correlation_id(request: Request) -> str:
+    """Return the validated correlation identifier."""
+    correlation_id = request.state.correlation_id
+    if not isinstance(correlation_id, str):
+        raise RuntimeError("Correlation identifier is not initialized")
+    return correlation_id
 
 
 def _resolve_correlation_id(request: Request, request_id: str) -> str:
@@ -24,7 +38,7 @@ def _resolve_correlation_id(request: Request, request_id: str) -> str:
 
 
 def configure_request_context(application: FastAPI) -> None:
-    """Attach server-owned request context and response headers."""
+    """Attach server-owned identifiers and response headers."""
 
     @application.middleware("http")
     async def request_context_middleware(
@@ -33,17 +47,10 @@ def configure_request_context(application: FastAPI) -> None:
     ) -> Response:
         request_id = str(uuid4())
         correlation_id = _resolve_correlation_id(request, request_id)
-        request.state.request_context = RequestContext(
-            request_id=request_id,
-            correlation_id=correlation_id,
-        )
-
-        with logfire.set_baggage(
-            request_id=request_id,
-            correlation_id=correlation_id,
-        ):
+        request.state.request_id = request_id
+        request.state.correlation_id = correlation_id
+        with logfire.set_baggage(request_id=request_id, correlation_id=correlation_id):
             response = await call_next(request)
-
         response.headers[REQUEST_ID_HEADER] = request_id
         response.headers[CORRELATION_ID_HEADER] = correlation_id
         return response

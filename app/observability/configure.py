@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from configuration import Settings
 
-SENSITIVE_PATTERNS = (
+_SENSITIVE_PATTERNS = (
     r"authorization",
     r"cookie",
     r"password",
@@ -23,13 +23,16 @@ SENSITIVE_PATTERNS = (
     r"dsn",
 )
 
-def configure_observability(
-    *,
-    application: FastAPI,
-    engine: AsyncEngine,
-    settings: Settings,
-) -> None:
-    """Configure Logfire once and instrument FastAPI and SQLAlchemy."""
+
+def _discard_endpoint_arguments(
+    _request: Request | WebSocket,
+    _attributes: dict[str, Any],
+) -> dict[str, Any]:
+    return {}
+
+
+def configure_observability(settings: Settings) -> None:
+    """Configure process-wide Logfire before creating the application."""
     logfire_settings = settings.logfire
     token = (
         logfire_settings.token.get_secret_value() if logfire_settings.token is not None else None
@@ -41,10 +44,19 @@ def configure_observability(
         service_version=settings.application.version,
         environment=settings.application.environment.value,
         console=None if logfire_settings.console_enabled else False,
-        scrubbing=logfire.ScrubbingOptions(extra_patterns=SENSITIVE_PATTERNS),
+        scrubbing=logfire.ScrubbingOptions(extra_patterns=_SENSITIVE_PATTERNS),
     )
+
+
+def instrument_application(application: FastAPI) -> None:
+    """Instrument FastAPI without capturing headers or endpoint arguments."""
     logfire.instrument_fastapi(
         application,
         capture_headers=False,
+        request_attributes_mapper=_discard_endpoint_arguments,
     )
+
+
+def instrument_database(engine: AsyncEngine) -> None:
+    """Instrument the concrete lifespan-owned SQLAlchemy engine."""
     logfire.instrument_sqlalchemy(engine=engine)

@@ -4,21 +4,19 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
+
+from api.schemas.base import ResponseModel
 
 
-class ReadinessDependencies(BaseModel):
+class ReadinessDependencies(ResponseModel):
     """Required runtime dependency states."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
 
     postgresql: Literal["ready"] = Field(description="PostgreSQL readiness state.")
 
 
-class ReadinessResult(BaseModel):
+class ReadinessResult(ResponseModel):
     """Aggregate runtime readiness result."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
 
     status: Literal["ready"] = Field(description="Aggregate service readiness state.")
     dependencies: ReadinessDependencies = Field(description="Required dependency states.")

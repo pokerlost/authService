@@ -5,11 +5,14 @@ description = "Central identity, authentication, and coarse-grained authorizatio
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "PyJWT[crypto]>=2.10.1,<3",
     "alembic>=1.16.4,<2",
+    "argon2-cffi>=25.1.0,<26",
     "asyncpg>=0.30.0,<1",
     "fastapi>=0.116.1,<1",
     "gunicorn>=23.0.0,<24",
     "logfire[fastapi,sqlalchemy]>=4.3.3,<5",
+    "pydantic[email]>=2.11.7,<3",
     "pydantic-settings>=2.10.1,<3",
     "sqlalchemy[asyncio]>=2.0.41,<3",
     "typer>=0.16.0,<1",
@@ -45,10 +48,12 @@ packages = [
 [tool.ruff]
 target-version = "py312"
 line-length = 99
+src = ["app"]
 exclude = ["AGENTS.md"]
 
 [tool.ruff.lint]
-select = ["ASYNC", "B", "E", "F", "I", "RUF", "UP"]
+select = ["ANN", "ASYNC", "B", "D", "E", "F", "I", "RUF", "UP"]
+ignore = ["D107", "D203", "D213", "D417"]
 
 [tool.ruff.lint.isort]
 known-third-party = ["alembic"]
@@ -64,6 +69,8 @@ known-first-party = [
 
 [tool.ruff.lint.per-file-ignores]
 "alembic/versions/*.py" = ["F401"]
+"app/api/openapi.py" = ["ANN401"]
+"app/observability/configure.py" = ["ANN401"]
 
 [tool.mypy]
 python_version = "3.12"
