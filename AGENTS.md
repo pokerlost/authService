@@ -8,21 +8,31 @@
 
 # Service Profile — Must Be Completed
 
-```text
-SERVICE_NAME: <canonical human-facing name, e.g. authService>
-SERVICE_SLUG: <lowercase DNS/Kubernetes name, e.g. authservice>
-SERVICE_PURPOSE: <one paragraph>
-SERVICE_ROLE: <AUTH | FINANCIAL | CRYPTO | POKER | GENERAL>
-DATA_OWNERSHIP: <data for which this service is the source of truth>
-OUT_OF_SCOPE: <explicitly forbidden responsibilities>
-PRIMARY_STORAGE: <PostgreSQL | none | another explicitly approved store>
-SECONDARY_STORAGE: <Redis or none; explain exact responsibility>
-EXTERNAL_DEPENDENCIES: <services, RPC providers, nodes, gateways>
-AUTH_POLICY: <owned here | external Auth Service | not yet integrated>
-REALTIME_POLICY: <HTTP only | HTTP + WebSocket>
-SPECIAL_INVARIANTS: <domain invariants that must never be violated>
-FIRST_PRODUCTION_SCOPE: <what must exist before the service is frozen>
-```
+SERVICE_NAME: authService
+
+SERVICE_SLUG: authservice
+
+SERVICE_PURPOSE: Central authentication and authorization service for the PokerLost platform. authService owns human and machine identities, credentials, authentication sessions, access and refresh token lifecycle, roles, JWT issuance and verification metadata, service-to-service authentication, and the OpenAPI-based authorization registry used to determine which roles may invoke each RPC operation.
+
+SERVICE_ROLE: AUTH
+
+DATA_OWNERSHIP: Source of truth for authentication principals, user authentication accounts, support accounts, master accounts, machine/service principals, credentials, password hashes, account authentication status, sessions, refresh-token state and rotation chains, roles, principal-role assignments, service credentials, JWT signing-key metadata, registered PokerLost services, registered OpenAPI authorization contracts, RPC authorization policies, password-reset state, security-sensitive idempotency records, and authentication/authorization audit events. authService does not own profile, poker, financial, wallet, blockchain, or other service-domain data.
+
+OUT_OF_SCOPE: API gateway functionality, reverse proxying, routing requests to backend services, load balancing, poker logic, financial logic, cryptocurrency or wallet logic, user profile data, domain/resource-level authorization decisions belonging to other services, direct access to databases owned by other services, modification of other services' domain data, and authorization based on URLs. authService must not become a mandatory synchronous hop for ordinary client-to-service or service-to-service RPC calls after a token has been issued.
+
+PRIMARY_STORAGE: PostgreSQL
+
+SECONDARY_STORAGE: none. PostgreSQL is the only storage required for the first production scope. Redis may be introduced later only for a clearly justified responsibility such as distributed rate limiting, short-lived revocation/state propagation, or security caching, and must not become the source of truth for authentication or authorization state.
+
+EXTERNAL_DEPENDENCIES: PostgreSQL is the only mandatory infrastructure dependency for the core first-production runtime. PokerLost backend services integrate through formal OpenAPI contracts and locally validate authService-issued JWTs; they are not synchronous dependencies for normal authentication-state reads. API Gateway may route traffic and optionally perform preliminary JWT checks but is not trusted as the final authorization boundary. A notification/email provider may later be used for password-reset delivery through an explicit port. authService must not depend on implementation details or databases of other PokerLost services.
+
+AUTH_POLICY: owned here. authService is the source of truth for the PokerLost authentication model and role assignments. The authorization roles are user, support, master, and auto; public means no authorization and is not a role. There is NO IMPLICIT ROLE INHERITANCE: support does not automatically receive user RPC access, master does not automatically receive all RPC access, auto does not receive human RPC access, and human roles do not receive internal machine RPC access. Every protected RPC explicitly declares its allowed roles through x-pokerlost-authz. Final resource/business authorization remains the responsibility of the target domain service.
+
+REALTIME_POLICY: HTTP only
+
+SPECIAL_INVARIANTS: public is not a role and represents an explicitly unauthenticated RPC; the only authorization roles are user, support, master, and auto; there is NO IMPLICIT ROLE INHERITANCE between any roles; every protected RPC must explicitly list every allowed role in x-pokerlost-authz; missing or malformed authorization metadata is fail-closed; user represents ordinary PokerLost users; support represents separately provisioned staff accounts and should normally access dedicated support-safe RPC operations rather than internal service APIs; master represents administrator accounts and is allowed only on explicitly declared administrative/control-plane RPC operations; auto represents machine principals used exclusively for service-to-service communication and must never grant human API access; master is not a global authorization bypass; auto is not an internal superuser; machine principals must be further isolated by service identity/audience or equivalent service-to-service scope so one compromised service cannot call every auto RPC; OpenAPI operationId is the stable semantic identifier of an RPC and must not depend on its URL or Python function name; OpenAPI operationId must never be confused with business operation_id/idempotency identifiers; PokerLost-specific OpenAPI metadata uses x-pokerlost-service and x-pokerlost-authz; x-pokerlost-service identifies the owning service; protected x-pokerlost-authz declares roles explicitly, while public operations declare public: true; public: true and roles must never coexist; passwords use Argon2id and are never stored or logged in plaintext; access tokens are short-lived asymmetrically signed JWTs; private signing keys are available only to authService and never stored in source control or exposed through APIs; public signing keys are distributed through JWKS; signing-key rotation must preserve verification of still-valid access tokens; refresh tokens are opaque, server-tracked, rotated on every successful refresh, never stored in plaintext, and reuse of a previously rotated token revokes the associated session/token family; service credentials and password-reset secrets are never stored in plaintext; USER/human and machine principals must remain distinguishable even though authorization decisions use explicit roles; secrets, passwords, Authorization headers, access tokens, refresh tokens, service credentials, reset tokens, and private keys must never be written to logs; other services validate JWTs locally and must not call authService on every RPC request; authService must remain independent from the programming language, framework, implementation, and database schema of every other PokerLost service.
+
+FIRST_PRODUCTION_SCOPE: Production-ready FastAPI/RPC service foundation according to AGENTS.md; validated configuration and fail-fast startup; PostgreSQL persistence, SQLAlchemy and Alembic; authentication principals for ordinary users, support staff, master administrators, and internal machine identities; controlled account creation appropriate to each principal category; Argon2id password credentials for human accounts; login; short-lived asymmetrically signed access JWTs; stable JWT claim model; JWKS publication; signing-key provider abstraction and safe key rotation; server-tracked sessions; opaque refresh tokens with rotation, replay/reuse detection, session-family revocation, expiration and logout behavior; logout, logout-all, session listing and individual session revocation; password change and secure password-reset architecture; account disable/block support; explicit roles user, support, master, and auto with no implicit inheritance; service principals and rotatable service credentials for auto authentication; service-to-service token issuance with target-service isolation; OpenAPI service registration using x-pokerlost-service; RPC authorization-policy registration from operationId and x-pokerlost-authz; explicit public versus protected RPC classification; fail-closed validation; operationId uniqueness/ownership; safe contract replacement/version lifecycle sufficient to update registered services without silently weakening authorization; administrative RPC operations for auth-owned state; dedicated support/master control-plane operations where required; security audit trail; idempotency for retryable administrative mutations; stable API error contracts; request_id and correlation_id propagation; Logfire integration with sensitive-data filtering; liveness/readiness; and the production runtime, Docker and Helm artifacts required by AGENTS.md. MFA, passkeys/WebAuthn, external identity federation/social login, Redis-dependent distributed security infrastructure, and other advanced authentication mechanisms are outside the first production scope unless separately requested.
 
 The Service Profile is not documentation decoration. It defines the service boundary.
 

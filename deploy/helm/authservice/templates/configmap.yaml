@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "authservice.fullname" . }}
+  labels:
+    {{- include "authservice.labels" . | nindent 4 }}
+data:
+  AUTH_APPLICATION__SERVICE_NAME: "authService"
+  AUTH_APPLICATION__ENVIRONMENT: {{ .Values.application.environment | quote }}
+  AUTH_HTTP__HOST: "0.0.0.0"
+  AUTH_HTTP__PORT: {{ .Values.http.port | quote }}
+  AUTH_HTTP__OPENAPI_ENABLED: {{ .Values.http.openapiEnabled | quote }}
+  AUTH_DATABASE__POOL_SIZE: {{ .Values.database.poolSize | quote }}
+  AUTH_DATABASE__MAX_OVERFLOW: {{ .Values.database.maxOverflow | quote }}
+  AUTH_DATABASE__POOL_TIMEOUT_SECONDS: {{ .Values.database.poolTimeoutSeconds | quote }}
+  AUTH_DATABASE__COMMAND_TIMEOUT_SECONDS: {{ .Values.database.commandTimeoutSeconds | quote }}
+  AUTH_LOGFIRE__SEND_TO_LOGFIRE: {{ .Values.logfire.sendToLogfire | quote }}
+  AUTH_LOGFIRE__CONSOLE_ENABLED: {{ .Values.logfire.consoleEnabled | quote }}
+  GUNICORN_WORKERS: {{ .Values.gunicorn.workers | quote }}
+  GUNICORN_TIMEOUT: {{ .Values.gunicorn.timeout | quote }}
+  GUNICORN_GRACEFUL_TIMEOUT: {{ .Values.gunicorn.gracefulTimeout | quote }}
+  GUNICORN_KEEPALIVE: {{ .Values.gunicorn.keepalive | quote }}
+  GUNICORN_FORWARDED_ALLOW_IPS: {{ .Values.gunicorn.forwardedAllowIps | quote }}

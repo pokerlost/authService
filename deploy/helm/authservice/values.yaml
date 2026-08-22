@@ -1,0 +1,63 @@
+replicaCount: 2
+
+image:
+  repository: pokerlost/authservice
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+application:
+  environment: production
+
+http:
+  port: 8000
+  openapiEnabled: true
+
+database:
+  existingSecret: authservice-runtime
+  urlKey: database-url
+  poolSize: 10
+  maxOverflow: 10
+  poolTimeoutSeconds: 10
+  commandTimeoutSeconds: 30
+
+logfire:
+  sendToLogfire: true
+  consoleEnabled: true
+  existingSecret: authservice-logfire
+  tokenKey: token
+
+gunicorn:
+  workers: 2
+  timeout: 30
+  gracefulTimeout: 30
+  keepalive: 5
+  forwardedAllowIps: "127.0.0.1"
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+terminationGracePeriodSeconds: 40

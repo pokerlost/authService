@@ -1,0 +1,18 @@
+"""Local HTTP server and OpenAPI settings."""
+
+from __future__ import annotations
+
+from pydantic import Field
+
+from .base import SettingsModel
+
+
+class HTTPSettings(SettingsModel):
+    """Application-facing HTTP runtime configuration."""
+
+    host: str = Field(default="127.0.0.1", min_length=1, max_length=255)
+    port: int = Field(default=8000, ge=1, le=65535)
+    openapi_enabled: bool = Field(
+        default=True,
+        description="Expose OpenAPI and interactive documentation endpoints.",
+    )
