@@ -55,7 +55,7 @@ class JWTSettings(SettingsModel):
     )
     jwks_cache_ttl_seconds: int = Field(
         default=60,
-        description="Cache-Control max-age for /.well-known/jwks.json responses.",
+        description="Cache-Control max-age for /jwks.get responses.",
         ge=1,
         le=600,
     )

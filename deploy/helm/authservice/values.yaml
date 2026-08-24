@@ -7,10 +7,34 @@ image:
 
 application:
   environment: production
+  version: "0.1.0"
 
 http:
   port: 8000
-  openapiEnabled: true
+
+openapiRegistry:
+  maxDocumentBytes: 1048576
+  maxOperations: 1000
+  maxNestingDepth: 64
+
+oauth2:
+  maxRequestedScopes: 128
+  maxScopeTokenLength: 255
+  maxTotalScopeClaimBytes: 16384
+  maxAccessTokenBytes: 24576
+
+rateLimit:
+  passwordAttempts: 10
+  passwordWindowSeconds: 300
+  passwordLockSeconds: 900
+  serviceCredentialAttempts: 20
+  serviceCredentialWindowSeconds: 300
+  serviceCredentialLockSeconds: 900
+
+maintenance:
+  cleanupBatchSize: 500
+  securityStateRetentionDays: 30
+  auditRetentionDays: 365
 
 database:
   existingSecret: authservice-runtime
@@ -27,6 +51,21 @@ password:
   hashLength: 32
   saltLength: 16
 
+session:
+  idleTtlSeconds: 86400
+  absoluteTtlSeconds: 2592000
+
+refreshToken:
+  ttlSeconds: 604800
+  existingSecret: authservice-runtime
+  pepperKey: refresh-token-pepper
+
+serviceAuth:
+  accessTokenTtlSeconds: 300
+  credentialTtlSeconds: 7776000
+  existingSecret: authservice-runtime
+  credentialPepperKey: service-credential-pepper
+
 jwt:
   issuer: authService
   humanAudience: authService
@@ -42,8 +81,10 @@ jwt:
     - key-20260822-a.pem
 
 logfire:
+  enabled: true
   sendToLogfire: true
-  consoleEnabled: true
+  console: true
+  minimumLevel: info
   existingSecret: authservice-logfire
   tokenKey: token
 

@@ -2,60 +2,38 @@
 
 from __future__ import annotations
 
-from application.errors.users import EmailAlreadyRegistered
-from application.security import Argon2PasswordHasher
-from domain.enums import PrincipalStatus, Role
-from persistence.database.models import Principal
-from persistence.repositories import (
-    SQLAlchemyHumanAccountRepository,
-    SQLAlchemyPasswordCredentialRepository,
-    SQLAlchemyPrincipalRepository,
-)
+from application.accounts import CreateHumanAccountCommand, CreateHumanAccountHandler
+from domain.enums import Role
 
 from .command import RegisterUserCommand
+from .result import RegisterUserResult
 
 
 class RegisterUserHandler:
-    """Create one active ordinary-user principal and credential atomically."""
+    """Create one active ordinary-user account atomically."""
 
-    __slots__ = (
-        "_human_account_repository",
-        "_password_credential_repository",
-        "_password_hasher",
-        "_principal_repository",
-    )
+    __slots__ = ("_create_human_account_handler",)
 
     def __init__(
         self,
-        *,
-        principal_repository: SQLAlchemyPrincipalRepository,
-        human_account_repository: SQLAlchemyHumanAccountRepository,
-        password_credential_repository: SQLAlchemyPasswordCredentialRepository,
-        password_hasher: Argon2PasswordHasher,
+        create_human_account_handler: CreateHumanAccountHandler,
     ) -> None:
-        self._principal_repository = principal_repository
-        self._human_account_repository = human_account_repository
-        self._password_credential_repository = password_credential_repository
-        self._password_hasher = password_hasher
+        self._create_human_account_handler = create_human_account_handler
 
-    async def execute(self, command: RegisterUserCommand) -> Principal:
+    async def execute(self, command: RegisterUserCommand) -> RegisterUserResult:
         """Register an ordinary user inside the caller-owned transaction."""
-        email = str(command.email)
-        normalized_email = email.casefold()
-        password_hash = self._password_hasher.hash(command.password)
-        principal = await self._principal_repository.create(
-            role=Role.USER,
-            status=PrincipalStatus.ACTIVE,
+        account = await self._create_human_account_handler.execute(
+            CreateHumanAccountCommand(
+                username=command.username,
+                nickname=command.nickname,
+                password=command.password,
+                role=Role.USER,
+                audit_context=command.audit_context,
+            ),
         )
-        human_account = await self._human_account_repository.create(
-            principal_id=principal.id,
-            email=email,
-            normalized_email=normalized_email,
+        return RegisterUserResult(
+            id=account.id,
+            username=account.username,
+            nickname=account.nickname,
+            role=account.role,
         )
-        if human_account is None:
-            raise EmailAlreadyRegistered
-        await self._password_credential_repository.create(
-            principal_id=principal.id,
-            password_hash=password_hash,
-        )
-        return principal

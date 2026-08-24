@@ -26,7 +26,7 @@ _MIN_RSA_BITS: Final = 2048
 class SigningKeyProvider:
     """Load and validate signing keys from mounted PEM files."""
 
-    __slots__ = ("_active_kid", "_jwks_payload", "_private_key")
+    __slots__ = ("_active_kid", "_jwks_payload", "_private_key", "_public_keys")
 
     def __init__(self, settings: JWTSettings) -> None:
         active_private_key_path = Path(settings.active_private_key_path)
@@ -47,6 +47,10 @@ class SigningKeyProvider:
         retained_public_keys_with_active = self._serialize_public_keys(retained_public_keys)
         active_jwk = self._serialize_key(self._active_kid, active_public_key)
         self._jwks_payload = [active_jwk, *retained_public_keys_with_active]
+        self._public_keys = {
+            self._active_kid: active_public_key,
+            **retained_public_keys,
+        }
 
     @property
     def active_private_key(self) -> rsa.RSAPrivateKey:
@@ -58,9 +62,13 @@ class SigningKeyProvider:
         """Return the configured active key identifier."""
         return self._active_kid
 
-    def get_jwks_payload(self) -> dict[str, list[dict[str, str]]]:
+    def get_jwks_payload(self) -> dict[str, object]:
         """Return public JWKS payload without private material."""
         return {"keys": self._jwks_payload}
+
+    def get_public_key(self, kid: str) -> rsa.RSAPublicKey | None:
+        """Return exactly the published RSA public key identified by kid."""
+        return self._public_keys.get(kid)
 
     @staticmethod
     def _remove_public_key(entries: dict[str, rsa.RSAPublicKey], kid: str) -> None:

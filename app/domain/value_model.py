@@ -1,4 +1,4 @@
-"""Immutable internal structured value base."""
+"""Immutable base for structured internal values."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ValueModel(BaseModel):
-    """Strict immutable alias-free application and domain value."""
+    """Strict immutable application and domain value."""
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,

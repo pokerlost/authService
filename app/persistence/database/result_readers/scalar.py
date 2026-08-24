@@ -1,26 +1,25 @@
-"""Typed SQLAlchemy scalar result extraction."""
+"""Typed scalar extraction from SQLAlchemy results."""
 
 from __future__ import annotations
 
-from sqlalchemy.engine import ScalarResult
+from sqlalchemy.engine import Result
 
 
 class SQLAlchemyScalarResultReader[ResultT]:
-    """Centralize approved scalar result cardinality operations."""
+    """Read typed scalar values from one SQLAlchemy execution result."""
 
-    __slots__ = ("_result",)
-
-    def __init__(self, result: ScalarResult[ResultT]) -> None:
+    def __init__(self, result: Result[tuple[ResultT]]) -> None:
+        """Wrap one typed SQLAlchemy scalar result."""
         self._result = result
 
     def one(self) -> ResultT:
         """Return exactly one scalar value."""
-        return self._result.one()
+        return self._result.scalar_one()
 
     def one_or_none(self) -> ResultT | None:
         """Return zero or one scalar value."""
-        return self._result.one_or_none()
+        return self._result.scalar_one_or_none()
 
     def all(self) -> list[ResultT]:
-        """Materialize all scalar values."""
-        return list(self._result.all())
+        """Materialize every scalar value in result order."""
+        return list(self._result.scalars().all())

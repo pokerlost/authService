@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from domain.types import EmailAddress, PasswordValue
+from application.audit import AuditContext
+from domain.types import Nickname, PasswordValue, Username
 from domain.value_model import ValueModel
 
 
 class RegisterUserCommand(ValueModel):
-    """Validated transport-independent registration values."""
+    """Validated transport-independent ordinary-user registration values."""
 
-    email: EmailAddress
+    username: Username
+    nickname: Nickname
     password: PasswordValue = Field(repr=False)
+    audit_context: AuditContext

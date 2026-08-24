@@ -1,4 +1,4 @@
-"""Small shared SQLAlchemy repository execution base."""
+"""Small shared base for UUID SQLAlchemy repository adapters."""
 
 from __future__ import annotations
 
@@ -8,37 +8,50 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.selectable import TypedReturnsRows
 
-from persistence.database.mixins import UUIDModel
-from persistence.database.result_readers import SQLAlchemyScalarResultReader
+from domain.value_model import ValueModel
+from persistence.database import UUIDModel
+from persistence.database.result_readers import (
+    SQLAlchemyProjectionResultReader,
+    SQLAlchemyScalarResultReader,
+)
 
 
 class SQLAlchemyRepository:
-    """Own one request session and typed scalar statement execution."""
+    """Own one request session and typed SQLAlchemy result execution."""
 
     __slots__ = ("_session",)
 
     def __init__(self, session: AsyncSession) -> None:
+        """Store the request-scoped SQLAlchemy session."""
         self._session = session
 
-    async def _execute_scalars[ResultT](
+    async def _read_scalar[ResultT](
         self,
         statement: TypedReturnsRows[tuple[ResultT]],
     ) -> SQLAlchemyScalarResultReader[ResultT]:
-        result = await self._session.scalars(statement)
+        result = await self._session.execute(statement)
         return SQLAlchemyScalarResultReader(result)
 
+    async def _read_projection[ProjectionT: ValueModel, *RowT](
+        self,
+        statement: TypedReturnsRows[tuple[*RowT]],
+        projection_type: type[ProjectionT],
+    ) -> SQLAlchemyProjectionResultReader[ProjectionT]:
+        result = await self._session.execute(statement)
+        return SQLAlchemyProjectionResultReader(result, projection_type)
 
-class SQLAlchemyEntityRepository[EntityT: UUIDModel](SQLAlchemyRepository):
-    """Provide standard UUID lookup for one mapped entity type."""
 
-    __slots__ = ("_model",)
+class SQLAlchemyEntityRepository[ModelT: UUIDModel](SQLAlchemyRepository):
+    """Provide common UUID lookup for a standard persisted entity."""
 
-    def __init__(self, session: AsyncSession, model: type[EntityT]) -> None:
-        super().__init__(session)
-        self._model = model
+    model: type[ModelT]
 
-    async def get_by_id(self, model_id: UUID) -> EntityT | None:
-        """Return one UUID entity or no row."""
-        statement = select(self._model).where(self._model.id == model_id)
-        result = await self._execute_scalars(statement)
+    async def get_by_id(
+        self,
+        model_id: UUID,
+    ) -> ModelT | None:
+        """Return one standard UUID entity when it exists."""
+        result = await self._read_scalar(
+            select(self.model).where(self.model.id == model_id),
+        )
         return result.one_or_none()

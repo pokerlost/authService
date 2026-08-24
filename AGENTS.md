@@ -12,27 +12,27 @@ SERVICE_NAME: authService
 
 SERVICE_SLUG: authservice
 
-SERVICE_PURPOSE: Central authentication and authorization service for the PokerLost platform. authService owns human and machine identities, credentials, authentication sessions, access and refresh token lifecycle, roles, JWT issuance and verification metadata, service-to-service authentication, and the OpenAPI-based authorization registry used to determine which roles may invoke each RPC operation.
+SERVICE_PURPOSE: Central authentication and authorization service for the PokerLost platform. authService owns human and machine identities, credentials, authentication sessions, access and refresh token lifecycle, identity roles, explicit OAuth2 operation-scope grants, JWT issuance and verification metadata, service-to-service authentication, and the OpenAPI-based authorization registry used to publish public or exact-scope requirements for each RPC operation.
 
 SERVICE_ROLE: AUTH
 
-DATA_OWNERSHIP: Source of truth for authentication principals, user authentication accounts, support accounts, master accounts, machine/service principals, credentials, password hashes, account authentication status, sessions, refresh-token state and rotation chains, roles, each principal's single direct role assignment, service credentials, JWT signing-key metadata, registered PokerLost services, registered OpenAPI authorization contracts, RPC authorization policies, password-reset state, security-sensitive idempotency records, and authentication/authorization audit events. authService does not own profile, poker, financial, wallet, blockchain, or other service-domain data.
+DATA_OWNERSHIP: Source of truth for authentication principals, human authentication usernames, the minimal non-unique nickname used as PokerLost display identity, support accounts, master accounts, machine/service principals, credentials, password hashes, account authentication status, sessions and their original scope ceilings, refresh-token state and rotation chains, identity roles, explicit role and service scope grants, service credentials, JWT signing-key metadata, registered PokerLost services, registered OpenAPI authorization contracts, RPC authorization requirements, durable security audit events, and PostgreSQL-backed authentication rate-limit state. authService does not own extended profile, poker, financial, wallet, blockchain, or other service-domain data.
 
-OUT_OF_SCOPE: API gateway functionality, reverse proxying, routing requests to backend services, load balancing, poker logic, financial logic, cryptocurrency or wallet logic, user profile data, domain/resource-level authorization decisions belonging to other services, direct access to databases owned by other services, modification of other services' domain data, and authorization based on URLs. authService must not become a mandatory synchronous hop for ordinary client-to-service or service-to-service RPC calls after a token has been issued.
+OUT_OF_SCOPE: API gateway functionality, reverse proxying, routing requests to backend services, load balancing, poker logic, financial logic, cryptocurrency or wallet logic, extended user profile data such as avatars, biographies, preferences, countries, or statistics, domain/resource-level authorization decisions belonging to other services, direct access to databases owned by other services, modification of other services' domain data, and authorization based on URLs. authService must not become a mandatory synchronous hop for ordinary client-to-service or service-to-service RPC calls after a token has been issued.
 
 PRIMARY_STORAGE: PostgreSQL
 
 SECONDARY_STORAGE: none. PostgreSQL is the only storage required for the first production scope. Redis may be introduced later only for a clearly justified responsibility such as distributed rate limiting, short-lived revocation/state propagation, or security caching, and must not become the source of truth for authentication or authorization state.
 
-EXTERNAL_DEPENDENCIES: PostgreSQL is the only mandatory infrastructure dependency for the core first-production runtime. PokerLost backend services integrate through formal OpenAPI contracts and locally validate authService-issued JWTs; they are not synchronous dependencies for normal authentication-state reads. API Gateway may route traffic and optionally perform preliminary JWT checks but is not trusted as the final authorization boundary. A notification/email provider may later be used for password-reset delivery through an explicit port. authService must not depend on implementation details or databases of other PokerLost services.
+EXTERNAL_DEPENDENCIES: PostgreSQL is the only mandatory infrastructure dependency for the core first-production runtime. PokerLost backend services integrate through formal OpenAPI contracts and locally validate authService-issued JWT signature, issuer, audience, expiration, and scopes; they are not synchronous dependencies for normal authentication-state reads. API Gateway may route traffic and optionally perform preliminary JWT checks but is not trusted as the final authorization boundary. The first production version has no email or notification dependency. authService must not depend on implementation details or databases of other PokerLost services.
 
-AUTH_POLICY: owned here. authService is the source of truth for the PokerLost authentication model and role assignments. The authorization roles are user, support, master, and auto; public means no authorization and is not a role. There is NO IMPLICIT ROLE INHERITANCE: support does not automatically receive user RPC access, master does not automatically receive all RPC access, auto does not receive human RPC access, and human roles do not receive internal machine RPC access. Every protected RPC explicitly declares its allowed roles through x-pokerlost-authz. Final resource/business authorization remains the responsibility of the target domain service.
+AUTH_POLICY: owned here. authService is the source of truth for the PokerLost authentication model, identity roles, and explicit OAuth2 scope grants. The identity roles are user, support, master, and auto; public means no authorization and is not a role. Role is never the final runtime permission check. There is NO IMPLICIT ROLE INHERITANCE: each human role receives only separately persisted RoleScopeGrant rows, and AUTO receives only exact source-service, audience, and ServiceScopeGrant combinations. OAuth2 scope is the sole runtime RPC authorization primitive and equals the canonical global OpenAPI operationId. Every protected RPC requires exactly its own operationId through standard OpenAPI OAuth2 security and FastAPI SecurityScopes. Final resource/business authorization remains the responsibility of the target domain service.
 
 REALTIME_POLICY: HTTP only
 
-SPECIAL_INVARIANTS: public is not a role and represents an explicitly unauthenticated RPC; the only authorization roles are user, support, master, and auto; there is NO IMPLICIT ROLE INHERITANCE between any roles; every protected RPC must explicitly list every allowed role in x-pokerlost-authz; missing or malformed authorization metadata is fail-closed; user represents ordinary PokerLost users; support represents separately provisioned staff accounts and should normally access dedicated support-safe RPC operations rather than internal service APIs; master represents administrator accounts and is allowed only on explicitly declared administrative/control-plane RPC operations; auto represents machine principals used exclusively for service-to-service communication and must never grant human API access; master is not a global authorization bypass; auto is not an internal superuser; machine principals must be further isolated by service identity/audience or equivalent service-to-service scope so one compromised service cannot call every auto RPC; OpenAPI operationId is the stable semantic identifier of an RPC and must not depend on its URL or Python function name; OpenAPI operationId must never be confused with business operation_id/idempotency identifiers; PokerLost-specific OpenAPI metadata uses x-pokerlost-service and x-pokerlost-authz; x-pokerlost-service identifies the owning service; protected x-pokerlost-authz declares roles explicitly, while public operations declare public: true; public: true and roles must never coexist; passwords use Argon2id and are never stored or logged in plaintext; access tokens are short-lived asymmetrically signed JWTs; private signing keys are available only to authService and never stored in source control or exposed through APIs; public signing keys are distributed through JWKS; signing-key rotation must preserve verification of still-valid access tokens; refresh tokens are opaque, server-tracked, rotated on every successful refresh, never stored in plaintext, and reuse of a previously rotated token revokes the associated session/token family; service credentials and password-reset secrets are never stored in plaintext; USER/human and machine principals must remain distinguishable even though authorization decisions use explicit roles; secrets, passwords, Authorization headers, access tokens, refresh tokens, service credentials, reset tokens, and private keys must never be written to logs; other services validate JWTs locally and must not call authService on every RPC request; authService must remain independent from the programming language, framework, implementation, and database schema of every other PokerLost service.
+SPECIAL_INVARIANTS: public is not a role and represents an explicitly unauthenticated RPC with OpenAPI security: []; the only identity roles are user, support, master, and auto; role is account classification and grant-resolution input, never the final runtime permission primitive; there is NO IMPLICIT ROLE INHERITANCE between any roles; every protected resource operation requires exactly one OAuth2 scope equal to its operationId; missing, malformed, multiple, mismatched, or legacy authorization metadata is fail-closed; standard OpenAPI security with the canonical OAuth2 scheme is the only contract authorization form; user represents ordinary PokerLost users; support represents separately provisioned staff accounts and should normally access dedicated support-safe RPC operations; master represents administrator accounts and is allowed only through separately granted administrative/control-plane scopes; auto represents machine principals used exclusively for service-to-service communication and must never grant human API access; master is not a global authorization bypass; auto is not an internal superuser; machine principals require both an audience grant and exact source/audience/scope grants; OpenAPI operationId is the stable semantic identifier of an RPC and the canonical OAuth2 scope; OpenAPI operationId must never be confused with business operation_id/idempotency identifiers; x-pokerlost-service identifies the owning service; password, refresh_token, and client_credentials grants are unified under POST /oauth.token; service client authentication uses HTTP Basic and machine audience comes only from resource; passwords use Argon2id and are never stored or logged in plaintext; access tokens are short-lived asymmetrically signed JWTs with a bounded space-delimited scope claim; private signing keys are available only to authService and never stored in source control or exposed through APIs; public signing keys are distributed through wrapped JWKS; signing-key rotation must preserve verification of still-valid access tokens; refresh tokens are opaque, server-tracked, rotated on every successful refresh, never stored in plaintext, and reuse of a previously rotated token revokes the associated session/token family; password changes and master-assisted resets revoke all target sessions; there is no email password-reset flow; service credentials are never stored in plaintext; USER/human and machine principals remain structurally distinguishable; secrets, passwords, Authorization headers, access tokens, refresh tokens, service credentials, peppers, and private keys must never be written to logs or audit; successful security mutations and audit events commit atomically; failed authentication returns through a committing request transaction so its limiter state and audit event remain durable, while failures that require business rollback use a dedicated audit transaction; every API method and handled error returns ApplicationResponse; other services validate JWTs locally and must not call authService on every RPC request; authService must remain independent from the programming language, framework, implementation, and database schema of every other PokerLost service.
 
-FIRST_PRODUCTION_SCOPE: Production-ready FastAPI/RPC service foundation according to AGENTS.md; validated configuration and fail-fast startup; PostgreSQL persistence, SQLAlchemy and Alembic; authentication principals for ordinary users, support staff, master administrators, and internal machine identities; controlled account creation appropriate to each principal category; Argon2id password credentials for human accounts; login; short-lived asymmetrically signed access JWTs; stable JWT claim model; JWKS publication; signing-key provider abstraction and safe key rotation; server-tracked sessions; opaque refresh tokens with rotation, replay/reuse detection, session-family revocation, expiration and logout behavior; logout, logout-all, session listing and individual session revocation; password change and secure password-reset architecture; account disable/block support; explicit roles user, support, master, and auto with no implicit inheritance; service principals and rotatable service credentials for auto authentication; service-to-service token issuance with target-service isolation; OpenAPI service registration using x-pokerlost-service; RPC authorization-policy registration from operationId and x-pokerlost-authz; explicit public versus protected RPC classification; fail-closed validation; operationId uniqueness/ownership; safe contract replacement/version lifecycle sufficient to update registered services without silently weakening authorization; administrative RPC operations for auth-owned state; dedicated support/master control-plane operations where required; security audit trail; idempotency for retryable administrative mutations; stable API error contracts; request_id and correlation_id propagation; Logfire integration with sensitive-data filtering; liveness/readiness; and the production runtime, Docker and Helm artifacts required by AGENTS.md. MFA, passkeys/WebAuthn, external identity federation/social login, Redis-dependent distributed security infrastructure, and other advanced authentication mechanisms are outside the first production scope unless separately requested.
+FIRST_PRODUCTION_SCOPE: Production-ready FastAPI/RPC service foundation according to AGENTS.md; validated configuration and fail-fast startup; PostgreSQL persistence, SQLAlchemy and reversible Alembic migrations; human and machine principals; controlled category-specific identity creation; Argon2id human credentials; one form-encoded OAuth2 token RPC with password, refresh_token, and client_credentials grant semantics; short-lived asymmetrically signed JWTs with bounded canonical operation scopes; wrapped JWKS and JSON OpenAPI publication; server-tracked human sessions with immutable original scope ceilings; opaque refresh rotation, reuse detection, and family revocation; explicit RoleScopeGrant and audience-bound ServiceScopeGrant state with no inheritance; password change and master-assisted password reset without email; OpenAPI service registration using x-pokerlost-service and standard OAuth2 security; public versus exact-operation-scope normalization, permanent operationId ownership, safe contract replacement/diff/activation/retirement; dedicated support/master control-plane RPCs; durable append-only security audit including failed authentication outcomes; PostgreSQL-backed multi-instance brute-force limits; bounded retention cleanup; universal ApplicationResponse success and error transport; request_id and correlation_id propagation; Logfire with sensitive-data filtering; a parameterless root endpoint; and production Docker/Helm/Gunicorn artifacts. MFA, passkeys/WebAuthn, authorization_code, implicit, device_code, OIDC, external identity federation/social login, email reset, Redis, access-token denylists, and other advanced authentication mechanisms are outside the first production scope unless separately requested.
 
 The Service Profile is not documentation decoration. It defines the service boundary.
 
@@ -443,6 +443,81 @@ Use dotted camelCase RPC paths:
 /tablePositions.cashOut
 ```
 
+PokerLost HTTP path convention:
+
+All HTTP endpoints use RPC paths:
+
+```text
+/{namespace}.{method}
+```
+
+The only exception is:
+
+```text
+GET /
+```
+
+which is the parameterless service root. No other path exceptions exist.
+
+For authService this includes:
+
+```text
+GET  /
+GET  /jwks.get
+GET  /openapi.get
+POST /users.register
+POST /oauth.token
+POST /auth.logout
+POST /auth.logoutAll
+POST /account.changePassword
+GET  /sessions.list
+POST /sessions.revoke
+POST /master.createSupportAccount
+POST /master.createMasterAccount
+POST /master.disableAccount
+POST /master.enableAccount
+POST /master.resetHumanPassword
+POST /support.getUserAccount
+POST /master.registerOpenApiContract
+POST /master.validateOpenApiContract
+POST /master.diffOpenApiContract
+POST /master.activateOpenApiContract
+POST /master.retireOpenApiContract
+GET  /master.listRegisteredServices
+POST /master.getRegisteredService
+POST /master.listOpenApiContracts
+POST /master.getOpenApiContract
+POST /master.getAuthorizationManifest
+POST /master.createAutoPrincipal
+POST /master.createServiceCredential
+POST /master.revokeServiceCredential
+POST /master.grantServiceAudience
+POST /master.revokeServiceAudience
+POST /master.grantRoleScope
+POST /master.revokeRoleScope
+GET  /master.listRoleScopes
+POST /master.grantServiceScope
+POST /master.revokeServiceScope
+POST /master.listServiceScopes
+POST /master.listAuditEvents
+```
+
+authService human identity creation is category-specific:
+
+```text
+user     -> public /users.register
+support  -> explicit master-only control-plane RPC
+master   -> operator CLI bootstrap or explicit master-only control-plane RPC
+auto     -> separate AUTO operator provisioning and service credentials
+```
+
+The trusted human account creation application primitive accepts only `user`, `support`, and
+`master`; it must reject `auto`. Public registration never accepts role or status. Support access
+uses dedicated `/support.*` safe contracts and never grants direct repository or internal API
+access. A master may invoke support-safe or other surfaces only when a separate direct
+`RoleScopeGrant` exists for the exact operation scope. Role classification never bypasses
+`SecurityScopes`; there is no inheritance or administrator bypass.
+
 The router's logical area and method name must be explicit.
 
 Every route decorator places `path=` first:
@@ -822,12 +897,14 @@ Providers explicitly construct:
 
 Avoid a giant global use-case dependency module.
 
-Avoid named `SomethingDep` aliases used only once.
-
-Use direct:
+FastAPI dependencies are declared once as PEP 695 `type` aliases. Route and provider signatures
+use those aliases instead of repeating `Annotated[..., Depends(...)]`.
 
 ```python
-handler: Annotated[GetAccountHandler, Depends(provide_get_account)]
+type GetAccountHandlerDep = Annotated[
+    GetAccountHandler,
+    Depends(provide_get_account),
+]
 ```
 
 All persistence collaborators for one endpoint receive the same `AsyncSession`.
@@ -1473,6 +1550,86 @@ Production startup is direct Gunicorn, not Typer.
 # OpenAPI and SDK Contract
 
 OpenAPI is a machine-readable platform contract, not only Swagger documentation.
+
+## OAuth2 operation scopes v1
+
+OAuth2 scope is the only runtime RPC authorization primitive and is identical to the stable global
+PokerLost `operationId`. Public operations have an explicit empty OpenAPI security array:
+
+```json
+{
+  "operationId": "authService.root",
+  "security": []
+}
+```
+
+Every protected resource operation requires exactly one scope equal to its own operation ID:
+
+```json
+{
+  "operationId": "authService.sessions.list",
+  "security": [
+    {
+      "OAuth2": [
+        "authService.sessions.list"
+      ]
+    }
+  ]
+}
+```
+
+The canonical security scheme name is `OAuth2`, its type is `oauth2`, and its token URL is
+`/oauth.token`. PokerLost OAuth2 v1 implements `password`, `refresh_token`, and
+`client_credentials` grant semantics. The token RPC uses form encoding, client credentials use
+HTTP Basic, and every protocol result or error remains inside `ApplicationResponse`. This is an
+intentional PokerLost transport profile, not naked third-party OAuth2 wire compatibility.
+
+Role remains identity classification and input to explicit `RoleScopeGrant` resolution. It is
+never the final permission check. Each human session stores its original granted scope ceiling;
+refresh can preserve or narrow that ceiling after intersection with current active role grants,
+but can never broaden it. Machine issuance requires both `ServiceAudienceGrant` and an exact
+source/audience/operation `ServiceScopeGrant`. There is NO IMPLICIT ROLE INHERITANCE.
+
+## PokerLost service metadata and authorization registry v1
+
+Every service contract contains exactly this top-level extension shape:
+
+```json
+{
+  "x-pokerlost-service": {
+    "id": "authService"
+  }
+}
+```
+
+The extension contains exactly `id`. Contract version comes only from standard `info.version`.
+Registry v1 accepts OpenAPI 3.1.x JSON objects only. YAML input and output are unsupported.
+Registry code never fetches remote URLs, local files, or external references. Only local
+`#/components/...` references are permitted, and Path Item or Operation references that hide
+directly analyzable `operationId` or security metadata are invalid.
+
+`/` is the sole non-RPC path and maps to `<serviceId>.root`. Every other path contains exactly one
+GET or POST operation, follows `/{namespace}.{method}`, and maps exactly to
+`<serviceId>.<namespace>.<method>`. Non-empty webhooks and executable callbacks are unsupported.
+
+Every contract defines `components.securitySchemes.OAuth2` with standard `type: oauth2`, password
+and clientCredentials flows, `/oauth.token`, and a catalog containing each protected operation
+scope owned by that service. Public operations have empty effective security. Protected operations
+have exactly `[{"OAuth2": ["<operationId>"]}]`; extra, missing, inherited, mismatched, legacy, or
+custom Bearer authorization is fail-closed.
+
+Registration stores one immutable canonical JSONB document and does not validate or activate it.
+Successful validation atomically creates contract-scoped normalized operations whose
+authorization mode is `public` or `oauth2` with `required_scope == api_operation_id`. Invalid
+validation creates no normalized rows. Scope grants are separate authService control-plane state
+and activation never auto-grants them. Activation is explicit,
+optimistically verifies the observed active base and deterministic diff hash, requires explicit
+acknowledgement for security weakening, and is serialized by locking the registered service.
+
+An activated `operationId` is permanently owned by one registered PokerLost service. Retirement
+or operation removal never frees ownership. One PostgreSQL partial unique index enforces one active
+contract per service. The active authorization manifest is a control-plane read model; it is not a
+gateway or a request-by-request authorization call.
 
 Every method has:
 

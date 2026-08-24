@@ -39,6 +39,7 @@ def _resolve_correlation_id(request: Request, request_id: str) -> str:
 
 def configure_request_context(application: FastAPI) -> None:
     """Attach server-owned identifiers and response headers."""
+    from .errors.unexpected import handle_unexpected_error
 
     @application.middleware("http")
     async def request_context_middleware(
@@ -50,7 +51,10 @@ def configure_request_context(application: FastAPI) -> None:
         request.state.request_id = request_id
         request.state.correlation_id = correlation_id
         with logfire.set_baggage(request_id=request_id, correlation_id=correlation_id):
-            response = await call_next(request)
+            try:
+                response = await call_next(request)
+            except Exception as exception:
+                response = await handle_unexpected_error(request, exception)
         response.headers[REQUEST_ID_HEADER] = request_id
         response.headers[CORRELATION_ID_HEADER] = correlation_id
         return response

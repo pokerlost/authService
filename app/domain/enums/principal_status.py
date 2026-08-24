@@ -1,4 +1,4 @@
-"""Principal authentication status."""
+"""PrincipalModel authentication status."""
 
 from __future__ import annotations
 

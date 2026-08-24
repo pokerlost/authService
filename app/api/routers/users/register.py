@@ -1,56 +1,51 @@
-"""Public ordinary-user registration endpoint."""
+"""Public ordinary-user registration RPC."""
 
 from __future__ import annotations
 
-from typing import Annotated
+from fastapi import APIRouter, Request, status
 
-from fastapi import APIRouter, Depends, status
-
-from api.schemas.orm import PrincipalSchema
+from api.request_context import get_correlation_id, get_request_id
 from api.schemas.requests import RegisterUserRequest
-from api.schemas.responses import ApplicationResponse
-from application.users import RegisterUserHandler
+from api.schemas.responses import AccountResponse, ApplicationResponse
+from api.types import HandlerResult
+from application.audit import AuditContext
 
-from .dependencies import provide_register_user
+from .dependencies import RegisterUserHandlerDep
 
 router = APIRouter()
 
 
 @router.post(
     path=".register",
-    response_model=ApplicationResponse[PrincipalSchema],
-    response_model_exclude_none=True,
+    response_model=ApplicationResponse[AccountResponse],
     status_code=status.HTTP_201_CREATED,
-    summary="Register an ordinary PokerLost user",
-    description=(
-        "Create one active human principal with the direct user role and Argon2id credential."
-    ),
+    summary="Register ordinary user",
+    description="Create one active ordinary-user account with a canonical username.",
     operation_id="authService.users.register",
-    openapi_extra={"x-pokerlost-authz": {"public": True}},
+    openapi_extra={"security": []},
     responses={
-        status.HTTP_409_CONFLICT: {
-            "model": ApplicationResponse[None],
-            "description": "The normalized email is already registered.",
-        },
-        status.HTTP_422_UNPROCESSABLE_CONTENT: {
-            "model": ApplicationResponse[None],
-            "description": "The request payload is invalid.",
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "model": ApplicationResponse[None],
-            "description": "PostgreSQL is unavailable.",
-        },
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "model": ApplicationResponse[None],
-            "description": "Sanitized internal failure.",
-        },
+        status.HTTP_409_CONFLICT: {"model": ApplicationResponse[AccountResponse]},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ApplicationResponse[AccountResponse]},
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ApplicationResponse[AccountResponse]},
+        status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ApplicationResponse[AccountResponse]},
     },
-    tags=["users"],
 )
 async def register_user(
-    request: RegisterUserRequest,
-    handler: Annotated[RegisterUserHandler, Depends(provide_register_user)],
-) -> dict[str, object]:
-    """Register an ordinary user inside one request-owned transaction."""
-    principal = await handler.execute(request.to_command())
-    return {"ok": True, "result": principal}
+    request: Request,
+    body: RegisterUserRequest,
+    handler: RegisterUserHandlerDep,
+) -> HandlerResult:
+    """Register one ordinary user without establishing a session."""
+    result = await handler.execute(
+        body.to_command(
+            AuditContext(
+                request_id=get_request_id(request),
+                correlation_id=get_correlation_id(request),
+                api_operation_id="authService.users.register",
+            )
+        )
+    )
+    return {
+        "ok": True,
+        "result": result,
+    }

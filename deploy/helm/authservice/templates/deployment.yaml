@@ -33,7 +33,17 @@ spec:
                 secretKeyRef:
                   name: {{ required "database.existingSecret is required" .Values.database.existingSecret }}
                   key: {{ .Values.database.urlKey }}
-            {{- if .Values.logfire.sendToLogfire }}
+            - name: AUTH_REFRESH_TOKEN__PEPPER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "refreshToken.existingSecret is required" .Values.refreshToken.existingSecret }}
+                  key: {{ required "refreshToken.pepperKey is required" .Values.refreshToken.pepperKey }}
+            - name: AUTH_SERVICE_AUTH__CREDENTIAL_PEPPER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "serviceAuth.existingSecret is required" .Values.serviceAuth.existingSecret }}
+                  key: {{ required "serviceAuth.credentialPepperKey is required" .Values.serviceAuth.credentialPepperKey }}
+            {{- if and .Values.logfire.enabled .Values.logfire.sendToLogfire }}
             - name: AUTH_LOGFIRE__TOKEN
               valueFrom:
                 secretKeyRef:
@@ -46,7 +56,7 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /health.checkLiveness
+              path: /
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -54,7 +64,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health.checkReadiness
+              path: /
               port: http
             initialDelaySeconds: 2
             periodSeconds: 5

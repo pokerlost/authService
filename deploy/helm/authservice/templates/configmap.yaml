@@ -5,11 +5,26 @@ metadata:
   labels:
     {{- include "authservice.labels" . | nindent 4 }}
 data:
-  AUTH_APPLICATION__SERVICE_NAME: "authService"
   AUTH_APPLICATION__ENVIRONMENT: {{ .Values.application.environment | quote }}
+  AUTH_APPLICATION__VERSION: {{ .Values.application.version | quote }}
   AUTH_HTTP__HOST: "0.0.0.0"
   AUTH_HTTP__PORT: {{ .Values.http.port | quote }}
-  AUTH_HTTP__OPENAPI_ENABLED: {{ .Values.http.openapiEnabled | quote }}
+  AUTH_OPENAPI_REGISTRY__MAX_DOCUMENT_BYTES: {{ .Values.openapiRegistry.maxDocumentBytes | quote }}
+  AUTH_OPENAPI_REGISTRY__MAX_OPERATIONS: {{ .Values.openapiRegistry.maxOperations | quote }}
+  AUTH_OPENAPI_REGISTRY__MAX_NESTING_DEPTH: {{ .Values.openapiRegistry.maxNestingDepth | quote }}
+  AUTH_OAUTH2__MAX_REQUESTED_SCOPES: {{ .Values.oauth2.maxRequestedScopes | quote }}
+  AUTH_OAUTH2__MAX_SCOPE_TOKEN_LENGTH: {{ .Values.oauth2.maxScopeTokenLength | quote }}
+  AUTH_OAUTH2__MAX_TOTAL_SCOPE_CLAIM_BYTES: {{ .Values.oauth2.maxTotalScopeClaimBytes | quote }}
+  AUTH_OAUTH2__MAX_ACCESS_TOKEN_BYTES: {{ .Values.oauth2.maxAccessTokenBytes | quote }}
+  AUTH_RATE_LIMIT__PASSWORD_ATTEMPTS: {{ .Values.rateLimit.passwordAttempts | quote }}
+  AUTH_RATE_LIMIT__PASSWORD_WINDOW_SECONDS: {{ .Values.rateLimit.passwordWindowSeconds | quote }}
+  AUTH_RATE_LIMIT__PASSWORD_LOCK_SECONDS: {{ .Values.rateLimit.passwordLockSeconds | quote }}
+  AUTH_RATE_LIMIT__SERVICE_CREDENTIAL_ATTEMPTS: {{ .Values.rateLimit.serviceCredentialAttempts | quote }}
+  AUTH_RATE_LIMIT__SERVICE_CREDENTIAL_WINDOW_SECONDS: {{ .Values.rateLimit.serviceCredentialWindowSeconds | quote }}
+  AUTH_RATE_LIMIT__SERVICE_CREDENTIAL_LOCK_SECONDS: {{ .Values.rateLimit.serviceCredentialLockSeconds | quote }}
+  AUTH_MAINTENANCE__CLEANUP_BATCH_SIZE: {{ .Values.maintenance.cleanupBatchSize | quote }}
+  AUTH_MAINTENANCE__SECURITY_STATE_RETENTION_DAYS: {{ .Values.maintenance.securityStateRetentionDays | quote }}
+  AUTH_MAINTENANCE__AUDIT_RETENTION_DAYS: {{ .Values.maintenance.auditRetentionDays | quote }}
   AUTH_DATABASE__POOL_SIZE: {{ .Values.database.poolSize | quote }}
   AUTH_DATABASE__MAX_OVERFLOW: {{ .Values.database.maxOverflow | quote }}
   AUTH_DATABASE__POOL_TIMEOUT_SECONDS: {{ .Values.database.poolTimeoutSeconds | quote }}
@@ -19,6 +34,11 @@ data:
   AUTH_PASSWORD__PARALLELISM: {{ .Values.password.parallelism | quote }}
   AUTH_PASSWORD__HASH_LENGTH: {{ .Values.password.hashLength | quote }}
   AUTH_PASSWORD__SALT_LENGTH: {{ .Values.password.saltLength | quote }}
+  AUTH_SESSION__IDLE_TTL_SECONDS: {{ .Values.session.idleTtlSeconds | quote }}
+  AUTH_SESSION__ABSOLUTE_TTL_SECONDS: {{ .Values.session.absoluteTtlSeconds | quote }}
+  AUTH_REFRESH_TOKEN__TTL_SECONDS: {{ .Values.refreshToken.ttlSeconds | quote }}
+  AUTH_SERVICE_AUTH__ACCESS_TOKEN_TTL_SECONDS: {{ .Values.serviceAuth.accessTokenTtlSeconds | quote }}
+  AUTH_SERVICE_AUTH__CREDENTIAL_TTL_SECONDS: {{ .Values.serviceAuth.credentialTtlSeconds | quote }}
   AUTH_JWT__ISSUER: {{ .Values.jwt.issuer | quote }}
   AUTH_JWT__HUMAN_AUDIENCE: {{ .Values.jwt.humanAudience | quote }}
   AUTH_JWT__ACCESS_TOKEN_TTL_SECONDS: {{ .Values.jwt.accessTokenTtlSeconds | quote }}
@@ -27,8 +47,10 @@ data:
   AUTH_JWT__ACTIVE_PRIVATE_KEY_PATH: {{ .Values.jwt.activePrivateKeyPath | quote }}
   AUTH_JWT__RETAINED_PUBLIC_KEY_DIRECTORY: {{ .Values.jwt.retainedPublicKeyDirectory | quote }}
   AUTH_JWT__JWKS_CACHE_TTL_SECONDS: {{ .Values.jwt.jwksCacheTtlSeconds | quote }}
+  AUTH_LOGFIRE__ENABLED: {{ .Values.logfire.enabled | quote }}
   AUTH_LOGFIRE__SEND_TO_LOGFIRE: {{ .Values.logfire.sendToLogfire | quote }}
-  AUTH_LOGFIRE__CONSOLE_ENABLED: {{ .Values.logfire.consoleEnabled | quote }}
+  AUTH_LOGFIRE__CONSOLE: {{ .Values.logfire.console | quote }}
+  AUTH_LOGFIRE__MINIMUM_LEVEL: {{ .Values.logfire.minimumLevel | quote }}
   GUNICORN_CMD_ARGS: >-
     --bind=0.0.0.0:{{ .Values.http.port }}
     --workers={{ .Values.gunicorn.workers }}

@@ -14,7 +14,14 @@ from .database import DatabaseSettings
 from .http import HTTPSettings
 from .jwt import JWTSettings
 from .logfire import LogfireSettings
+from .maintenance import MaintenanceSettings
+from .oauth2 import OAuth2Settings
+from .openapi_registry import OpenAPIRegistrySettings
 from .password import PasswordSettings
+from .rate_limit import RateLimitSettings
+from .refresh_token import RefreshTokenSettings
+from .service_auth import ServiceAuthSettings
+from .session import SessionSettings
 
 
 class Settings(BaseSettings):
@@ -38,13 +45,19 @@ class Settings(BaseSettings):
     logfire: LogfireSettings = Field(default_factory=LogfireSettings)
     password: PasswordSettings = Field(default_factory=PasswordSettings)
     jwt: JWTSettings = Field(default_factory=JWTSettings)
+    session: SessionSettings = Field(default_factory=SessionSettings)
+    refresh_token: RefreshTokenSettings
+    service_auth: ServiceAuthSettings
+    openapi_registry: OpenAPIRegistrySettings = Field(default_factory=OpenAPIRegistrySettings)
+    oauth2: OAuth2Settings = Field(default_factory=OAuth2Settings)
+    rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
+    maintenance: MaintenanceSettings = Field(default_factory=MaintenanceSettings)
 
     @model_validator(mode="after")
     def validate_production_observability(self) -> Self:
         """Fail fast when production telemetry delivery is disabled."""
-        if (
-            self.application.environment is Environment.PRODUCTION
-            and not self.logfire.send_to_logfire
+        if self.application.environment is Environment.PRODUCTION and not (
+            self.logfire.enabled and self.logfire.send_to_logfire
         ):
             raise ValueError("Production requires remote Logfire delivery")
         return self

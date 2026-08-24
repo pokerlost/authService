@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from configuration import Settings
-from observability import configure_observability, instrument_application
+from observability import configure_observability, instrument_fastapi
 
 from .errors import configure_exception_handlers
 from .lifespan import create_lifespan
@@ -18,8 +18,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     """Build a configured authService application without creating runtime resources."""
     resolved_settings = settings or Settings()
     configure_observability(resolved_settings)
-    openapi_enabled = resolved_settings.http.openapi_enabled
-
     application = PokerLostAPI(
         title=resolved_settings.application.service_name,
         version=resolved_settings.application.version,
@@ -27,13 +25,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         debug=False,
         lifespan=create_lifespan(resolved_settings),
         openapi_tags=OPENAPI_TAGS,
-        openapi_url="/openapi.json" if openapi_enabled else None,
-        docs_url="/docs" if openapi_enabled else None,
+        openapi_url=None,
+        docs_url=None,
         redoc_url=None,
     )
 
     configure_request_context(application)
     configure_exception_handlers(application)
     configure_routes(application)
-    instrument_application(application)
+    instrument_fastapi(application, resolved_settings)
     return application

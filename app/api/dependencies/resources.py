@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
-from fastapi import Request
+from typing import Annotated
+
+from fastapi import Depends, Request
 
 from api.resources import ApplicationResources
 
 
 def get_application_resources(request: Request) -> ApplicationResources:
-    """Return resources attached by the application lifespan."""
+    """Return lifespan-owned application resources."""
     resources = request.app.state.resources
     if not isinstance(resources, ApplicationResources):
         raise RuntimeError("Application resources are not initialized")
     return resources
+
+
+type ApplicationResourcesDep = Annotated[
+    ApplicationResources,
+    Depends(get_application_resources),
+]

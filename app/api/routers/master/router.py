@@ -1,0 +1,64 @@
+"""Master control-plane router composition."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter
+
+from api.openapi import OpenAPITag
+
+from .activate_openapi_contract import router as activate_openapi_contract_router
+from .create_auto_principal import router as create_auto_principal_router
+from .create_master_account import router as create_master_account_router
+from .create_service_credential import router as create_service_credential_router
+from .create_support_account import router as create_support_account_router
+from .diff_openapi_contract import router as diff_openapi_contract_router
+from .disable_account import router as disable_account_router
+from .enable_account import router as enable_account_router
+from .get_authorization_manifest import router as get_authorization_manifest_router
+from .get_openapi_contract import router as get_openapi_contract_router
+from .get_registered_service import router as get_registered_service_router
+from .grant_role_scope import router as grant_role_scope_router
+from .grant_service_audience import router as grant_service_audience_router
+from .grant_service_scope import router as grant_service_scope_router
+from .list_audit_events import router as list_audit_events_router
+from .list_openapi_contracts import router as list_openapi_contracts_router
+from .list_registered_services import router as list_registered_services_router
+from .list_role_scopes import router as list_role_scopes_router
+from .list_service_scopes import router as list_service_scopes_router
+from .register_openapi_contract import router as register_openapi_contract_router
+from .reset_human_password import router as reset_human_password_router
+from .retire_openapi_contract import router as retire_openapi_contract_router
+from .revoke_role_scope import router as revoke_role_scope_router
+from .revoke_service_audience import router as revoke_service_audience_router
+from .revoke_service_credential import router as revoke_service_credential_router
+from .revoke_service_scope import router as revoke_service_scope_router
+from .validate_openapi_contract import router as validate_openapi_contract_router
+
+router = APIRouter(prefix="/master", tags=[OpenAPITag.MASTER])
+router.include_router(create_support_account_router)
+router.include_router(create_master_account_router)
+router.include_router(disable_account_router)
+router.include_router(enable_account_router)
+router.include_router(reset_human_password_router)
+router.include_router(register_openapi_contract_router)
+router.include_router(validate_openapi_contract_router)
+router.include_router(diff_openapi_contract_router)
+router.include_router(activate_openapi_contract_router)
+router.include_router(retire_openapi_contract_router)
+router.include_router(list_registered_services_router)
+router.include_router(get_registered_service_router)
+router.include_router(list_openapi_contracts_router)
+router.include_router(get_openapi_contract_router)
+router.include_router(get_authorization_manifest_router)
+router.include_router(grant_role_scope_router)
+router.include_router(revoke_role_scope_router)
+router.include_router(list_role_scopes_router)
+router.include_router(list_audit_events_router)
+router.include_router(create_auto_principal_router)
+router.include_router(create_service_credential_router)
+router.include_router(revoke_service_credential_router)
+router.include_router(grant_service_audience_router)
+router.include_router(revoke_service_audience_router)
+router.include_router(grant_service_scope_router)
+router.include_router(revoke_service_scope_router)
+router.include_router(list_service_scopes_router)

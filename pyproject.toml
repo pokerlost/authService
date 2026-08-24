@@ -1,7 +1,7 @@
 [project]
 name = "pokerlost-authservice"
 version = "0.1.0"
-description = "Central identity, authentication, and coarse-grained authorization service for PokerLost"
+description = "Central identity, OAuth2 authentication, and scope authorization service for PokerLost"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -12,8 +12,9 @@ dependencies = [
     "fastapi>=0.116.1,<1",
     "gunicorn>=23.0.0,<24",
     "logfire[fastapi,sqlalchemy]>=4.3.3,<5",
-    "pydantic[email]>=2.11.7,<3",
+    "pydantic>=2.11.7,<3",
     "pydantic-settings>=2.10.1,<3",
+    "python-multipart>=0.0.20,<1",
     "sqlalchemy[asyncio]>=2.0.41,<3",
     "typer>=0.16.0,<1",
     "uvicorn>=0.35.0,<1",
@@ -21,7 +22,7 @@ dependencies = [
 ]
 
 [project.scripts]
-authservice = "cli.main:cli"
+authservice = "cli:cli"
 
 [dependency-groups]
 dev = [
@@ -70,7 +71,6 @@ known-first-party = [
 [tool.ruff.lint.per-file-ignores]
 "alembic/versions/*.py" = ["F401"]
 "app/api/openapi.py" = ["ANN401"]
-"app/observability/configure.py" = ["ANN401"]
 
 [tool.mypy]
 python_version = "3.12"

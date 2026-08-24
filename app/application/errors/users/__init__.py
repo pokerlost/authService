@@ -1,7 +1,7 @@
-"""User application error facade."""
+"""User account error facade."""
 
 from __future__ import annotations
 
-from .email_already_registered import EmailAlreadyRegistered
+from .username_already_registered import UsernameAlreadyRegistered
 
-__all__ = ("EmailAlreadyRegistered",)
+__all__ = ("UsernameAlreadyRegistered",)

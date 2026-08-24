@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import Request
+from typing import Annotated
+
+from fastapi import Depends, Request
 
 from configuration import Settings
 
@@ -13,3 +15,9 @@ def get_settings(request: Request) -> Settings:
     if not isinstance(settings, Settings):
         raise RuntimeError("Application settings are not initialized")
     return settings
+
+
+type SettingsDep = Annotated[
+    Settings,
+    Depends(get_settings),
+]

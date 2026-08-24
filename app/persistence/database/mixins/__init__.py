@@ -1,9 +1,13 @@
-"""Reusable ORM mapping primitive facade."""
+"""Public SQLAlchemy persistence mixins."""
 
 from __future__ import annotations
 
-from .created_at import CreatedAtMixin
-from .timestamp import TimestampMixin
-from .uuid_model import UUIDModel
+from .created_at_mixin import CreatedAtMixin
+from .timestamp_mixin import TimestampMixin
+from .uuid_primary_key_mixin import UUIDPrimaryKeyMixin
 
-__all__ = ("CreatedAtMixin", "TimestampMixin", "UUIDModel")
+__all__ = (
+    "CreatedAtMixin",
+    "TimestampMixin",
+    "UUIDPrimaryKeyMixin",
+)

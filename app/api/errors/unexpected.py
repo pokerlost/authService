@@ -6,12 +6,7 @@ import logfire
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
-from api.request_context import (
-    CORRELATION_ID_HEADER,
-    REQUEST_ID_HEADER,
-    get_correlation_id,
-    get_request_id,
-)
+from api.request_context import get_correlation_id, get_request_id
 
 
 async def handle_unexpected_error(request: Request, exception: Exception) -> JSONResponse:
@@ -26,7 +21,6 @@ async def handle_unexpected_error(request: Request, exception: Exception) -> JSO
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        headers={REQUEST_ID_HEADER: request_id, CORRELATION_ID_HEADER: correlation_id},
         content={
             "ok": False,
             "result": None,

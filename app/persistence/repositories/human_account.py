@@ -4,37 +4,55 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import contains_eager
 
-from persistence.database.models import HumanAccount
+from domain.enums import Role
+from persistence.database.models import HumanAccountModel, PrincipalModel
 
 from .base import SQLAlchemyRepository
 
 
 class SQLAlchemyHumanAccountRepository(SQLAlchemyRepository):
-    """Persist normalized human authentication identities."""
-
-    def __init__(self, session: AsyncSession) -> None:
-        super().__init__(session)
+    """Persist and locate canonical human login identities."""
 
     async def create(
         self,
         *,
         principal_id: UUID,
-        email: str,
-        normalized_email: str,
-    ) -> HumanAccount | None:
-        """Insert an account or return no row on normalized email conflict."""
-        statement = (
-            insert(HumanAccount)
+        username: str,
+        nickname: str,
+    ) -> HumanAccountModel | None:
+        """Insert an account or return no row on a concurrent username conflict."""
+        result = await self._read_scalar(
+            insert(HumanAccountModel)
             .values(
                 principal_id=principal_id,
-                email=email,
-                normalized_email=normalized_email,
+                username=username,
+                nickname=nickname,
             )
-            .on_conflict_do_nothing(index_elements=[HumanAccount.normalized_email])
-            .returning(HumanAccount)
+            .on_conflict_do_nothing(index_elements=[HumanAccountModel.username])
+            .returning(HumanAccountModel),
         )
-        result = await self._execute_scalars(statement)
+        return result.one_or_none()
+
+    async def get_by_username(self, username: str) -> HumanAccountModel | None:
+        """Return the human account with one canonical username."""
+        result = await self._read_scalar(
+            select(HumanAccountModel).where(HumanAccountModel.username == username),
+        )
+        return result.one_or_none()
+
+    async def get_user_by_username(self, username: str) -> HumanAccountModel | None:
+        """Return one ordinary-user account with its principal loaded explicitly."""
+        result = await self._read_scalar(
+            select(HumanAccountModel)
+            .join(PrincipalModel, PrincipalModel.id == HumanAccountModel.principal_id)
+            .options(contains_eager(HumanAccountModel.principal))
+            .where(
+                HumanAccountModel.username == username,
+                PrincipalModel.role == Role.USER,
+            ),
+        )
         return result.one_or_none()

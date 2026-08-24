@@ -5,15 +5,24 @@ image:
 
 application:
   environment: development
+  version: "0.1.0"
 
 database:
   existingSecret: authservice-local-runtime
   poolSize: 5
   maxOverflow: 5
 
+refreshToken:
+  existingSecret: authservice-local-runtime
+
+serviceAuth:
+  existingSecret: authservice-local-runtime
+
 logfire:
+  enabled: true
   sendToLogfire: false
-  consoleEnabled: true
+  console: true
+  minimumLevel: info
   existingSecret: ""
 
 gunicorn:
