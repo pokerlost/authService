@@ -1,4 +1,4 @@
-"""Operator CLI for authService."""
+"""Operator CLI facade."""
 
 from __future__ import annotations
 

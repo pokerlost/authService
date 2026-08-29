@@ -1,4 +1,4 @@
-"""UUID primary-key persistence mixin."""
+"""Reusable UUID primary-key persistence mixin."""
 
 from __future__ import annotations
 

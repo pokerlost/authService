@@ -1,77 +1,29 @@
-"""Application error category facade."""
+"""Transport-independent application error facade."""
 
 from __future__ import annotations
 
-from .accounts import SelfPasswordResetForbidden
-from .authentication import (
-    AuthenticationError,
-    CurrentPasswordInvalidError,
-    InvalidAccessToken,
-    InvalidCredentials,
-    InvalidOAuthClient,
-    InvalidOAuthGrant,
-    InvalidOAuthScope,
-    InvalidRefreshToken,
-    UnsupportedOAuthGrantType,
-)
 from .base import ApplicationError
 from .conflict import ConflictError
-from .forbidden import ForbiddenError
-from .insufficient_scope import InsufficientScopeError
 from .integrity import IntegrityError
 from .invalid_operation import InvalidOperationError
+from .invalid_principal_binding import InvalidPrincipalBindingError
+from .invalid_principal_role import InvalidPrincipalRoleError
+from .invalid_scope_name import InvalidScopeNameError
 from .not_found import NotFoundError
-from .openapi_registry import (
-    OpenAPIContractActivationConflictError,
-    OpenAPIContractNotFoundError,
-    OpenAPIContractNotValidatedError,
-    OpenAPIContractRegistrationInvalidError,
-    OpenAPIContractSecurityAcknowledgementRequiredError,
-    OpenAPIContractVersionConflictError,
-    OpenAPIOperationIDConflictError,
-    RegisteredServiceNotFoundError,
-)
-from .rate_limited import RateLimitedError
-from .scope_grant_invalid import ScopeGrantInvalidError
-from .service_authentication import (
-    InvalidServiceCredentials,
-    ServiceCredentialNotFound,
-    ServicePrincipalAlreadyExists,
-    ServicePrincipalNotFound,
-)
-from .sessions import SessionNotFound
+from .principal_conflict import PrincipalConflictError
+from .role_not_found import RoleNotFoundError
+from .scope_not_found import ScopeNotFoundError
 
 __all__ = (
     "ApplicationError",
-    "AuthenticationError",
     "ConflictError",
-    "CurrentPasswordInvalidError",
-    "ForbiddenError",
-    "InsufficientScopeError",
     "IntegrityError",
-    "InvalidAccessToken",
-    "InvalidCredentials",
-    "InvalidOAuthClient",
-    "InvalidOAuthGrant",
-    "InvalidOAuthScope",
     "InvalidOperationError",
-    "InvalidRefreshToken",
-    "InvalidServiceCredentials",
+    "InvalidPrincipalBindingError",
+    "InvalidPrincipalRoleError",
+    "InvalidScopeNameError",
     "NotFoundError",
-    "OpenAPIContractActivationConflictError",
-    "OpenAPIContractNotFoundError",
-    "OpenAPIContractNotValidatedError",
-    "OpenAPIContractRegistrationInvalidError",
-    "OpenAPIContractSecurityAcknowledgementRequiredError",
-    "OpenAPIContractVersionConflictError",
-    "OpenAPIOperationIDConflictError",
-    "RateLimitedError",
-    "RegisteredServiceNotFoundError",
-    "ScopeGrantInvalidError",
-    "SelfPasswordResetForbidden",
-    "ServiceCredentialNotFound",
-    "ServicePrincipalAlreadyExists",
-    "ServicePrincipalNotFound",
-    "SessionNotFound",
-    "UnsupportedOAuthGrantType",
+    "PrincipalConflictError",
+    "RoleNotFoundError",
+    "ScopeNotFoundError",
 )

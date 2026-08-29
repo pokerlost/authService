@@ -1,4 +1,4 @@
-"""Created-at persistence mixin."""
+"""Reusable created-at persistence mixin."""
 
 from __future__ import annotations
 

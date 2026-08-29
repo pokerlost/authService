@@ -1,39 +1,42 @@
-"""Persisted explicit human role-to-operation scope grant."""
+"""Explicit role-to-scope grant SQLAlchemy model."""
 
 from __future__ import annotations
 
-from sqlalchemy import CheckConstraint, ForeignKey, String
-from sqlalchemy import Enum as SQLAlchemyEnum
+from uuid import UUID
+
+from sqlalchemy import Boolean, ForeignKeyConstraint
+from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from domain.enums import Role
 from persistence.database import Base
 from persistence.database.mixins import CreatedAtMixin
 
 
 class RoleScopeGrantModel(CreatedAtMixin, Base):
-    """Grant one exact canonical operation scope to one direct human role."""
+    """Persist one exact role-to-scope grant without inheritance."""
 
     __tablename__ = "role_scope_grants"
     __table_args__ = (
-        CheckConstraint(
-            "role IN ('user', 'support', 'master')",
-            name="ck_role_scope_grants_human_role",
+        ForeignKeyConstraint(
+            ("role_id",),
+            ("authorization_roles.id",),
+            name="fk_role_scope_grants_role_id_authorization_roles",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("scope_id",),
+            ("oauth_scopes.id",),
+            name="fk_role_scope_grants_scope_id_oauth_scopes",
+            ondelete="RESTRICT",
         ),
     )
 
-    role: Mapped[Role] = mapped_column(
-        SQLAlchemyEnum(
-            Role,
-            values_callable=lambda enum: [member.value for member in enum],
-            native_enum=False,
-            length=7,
-            validate_strings=True,
-        ),
+    role_id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
         primary_key=True,
     )
-    api_operation_id: Mapped[str] = mapped_column(
-        String(255),
-        ForeignKey("operation_identities.api_operation_id", ondelete="RESTRICT"),
+    scope_id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
         primary_key=True,
     )
+    is_default: Mapped[bool] = mapped_column(Boolean, nullable=False)

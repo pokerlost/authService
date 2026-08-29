@@ -1,3 +1,3 @@
-"""Public API schemas grouped by transport boundary."""
+"""Public HTTP schema packages."""
 
 from __future__ import annotations

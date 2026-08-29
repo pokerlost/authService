@@ -7,6 +7,7 @@ from typing import Literal
 import logfire
 
 from configuration import Settings
+from service import SERVICE_NAME
 
 
 def configure_observability(settings: Settings) -> None:
@@ -14,7 +15,6 @@ def configure_observability(settings: Settings) -> None:
     logfire_settings = settings.logfire
 
     console: logfire.ConsoleOptions | Literal[False]
-
     if logfire_settings.enabled and logfire_settings.console:
         console = logfire.ConsoleOptions(
             min_log_level=logfire_settings.minimum_level,
@@ -30,7 +30,7 @@ def configure_observability(settings: Settings) -> None:
         else None
     )
     logfire.configure(
-        service_name=settings.application.service_name,
+        service_name=SERVICE_NAME,
         service_version=settings.application.version,
         environment=settings.application.environment.value,
         send_to_logfire=(logfire_settings.send_to_logfire if logfire_settings.enabled else False),

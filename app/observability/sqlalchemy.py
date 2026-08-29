@@ -1,4 +1,4 @@
-"""Privacy-safe SQLAlchemy Logfire instrumentation."""
+"""Privacy-safe PostgreSQL SQLAlchemy Logfire instrumentation."""
 
 from __future__ import annotations
 
@@ -8,10 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from configuration import Settings
 
 
-def instrument_database(
-    engine: AsyncEngine,
-    settings: Settings,
-) -> None:
+def instrument_database(engine: AsyncEngine, settings: Settings) -> None:
     """Instrument the concrete async SQLAlchemy engine once."""
     if not settings.logfire.enabled:
         return

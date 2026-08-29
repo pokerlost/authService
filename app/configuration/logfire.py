@@ -13,22 +13,13 @@ from .base import SettingsModel
 class LogfireSettings(SettingsModel):
     """Single observability backend configuration."""
 
-    enabled: bool = Field(
-        default=True,
-        description="Enable Logfire application instrumentation.",
-    )
+    enabled: bool = Field(default=True, description="Enable Logfire instrumentation.")
     send_to_logfire: bool = Field(
         default=False,
         description="Send telemetry to the configured Logfire project.",
     )
-    console: bool = Field(
-        default=True,
-        description="Render Logfire telemetry to the process console.",
-    )
-    minimum_level: LevelName = Field(
-        default="info",
-        description="Minimum Logfire record level.",
-    )
+    console: bool = Field(default=True, description="Render telemetry to the process console.")
+    minimum_level: LevelName = Field(default="info", description="Minimum record level.")
     token: SecretStr | None = Field(
         default=None,
         description="Logfire project write token required for remote delivery.",

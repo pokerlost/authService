@@ -1,0 +1,39 @@
+# authService documentation
+
+This documentation describes the generated PokerLost FastAPI service foundation and its verified development workflows.
+
+## Getting started
+
+- `docs/getting-started/installation.md` — installation.
+- `docs/getting-started/quickstart.md` — quickstart.
+- `docs/getting-started/configuration.md` — configuration.
+
+## API
+
+- `docs/api/overview.md` — API overview.
+- `docs/api/operation-contract.md` — operation contract.
+- `docs/api/application-response.md` — application response.
+- `docs/api/errors.md` — errors.
+- `docs/api/openapi-and-sdk.md` — OpenAPI and SDK.
+- `docs/api/public-surface.md` — public surface.
+
+## Architecture
+
+- `docs/architecture/overview.md` — architecture overview.
+- `docs/architecture/request-lifecycle.md` — request lifecycle.
+- `docs/architecture/persistence-and-transactions.md` — persistence and transactions.
+- `docs/architecture/business-operation-fingerprinting.md` — idempotency fingerprinting.
+
+## Development
+
+- `docs/development/commands.md` — commands.
+- `docs/development/contributing.md` — contributing.
+- `docs/development/python-style.md` — Python style.
+- `docs/development/documentation-style.md` — documentation style.
+- `docs/development/database-migrations.md` — database migrations.
+- `docs/development/containers-and-kubernetes.md` — containers and Kubernetes.
+
+## Project
+
+- `docs/project/quality.md` — quality.
+- `docs/project/status.md` — status.

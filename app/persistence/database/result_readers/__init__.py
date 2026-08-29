@@ -1,4 +1,4 @@
-"""SQLAlchemy result reader facade."""
+"""Public SQLAlchemy result reader facade."""
 
 from __future__ import annotations
 

@@ -1,3 +1,3 @@
-"""Framework-independent domain primitives."""
+"""Domain primitives package."""
 
 from __future__ import annotations

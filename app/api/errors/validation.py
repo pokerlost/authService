@@ -6,17 +6,17 @@ from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from service import SERVICE_ERROR_PREFIX
+
+from .response import error_response
+
 
 async def handle_validation_error(_request: Request, exception: Exception) -> JSONResponse:
     """Return a stable validation failure without echoing submitted values."""
     if not isinstance(exception, RequestValidationError):
         raise TypeError("Unexpected exception registered as RequestValidationError")
-    return JSONResponse(
+    return error_response(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        content={
-            "ok": False,
-            "result": None,
-            "error": "AUTH_VALIDATION_ERROR",
-            "errorMessage": "Request validation failed",
-        },
+        error=f"{SERVICE_ERROR_PREFIX}_VALIDATION_ERROR",
+        error_message="Request validation failed",
     )

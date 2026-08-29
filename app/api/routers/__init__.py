@@ -1,3 +1,3 @@
-"""Public API router packages."""
+"""Public API routers."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Public SQLAlchemy persistence mixins."""
+"""Reusable SQLAlchemy persistence mixins."""
 
 from __future__ import annotations
 

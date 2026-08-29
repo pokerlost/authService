@@ -1,13 +1,7 @@
-"""Optimized typed read-query facade."""
+"""Focused persistence query adapter facade."""
 
 from __future__ import annotations
 
-from .audit_events import SQLAlchemyAuditEventQuery
-from .openapi_registry import SQLAlchemyOpenAPIRegistryQuery
-from .scopes import SQLAlchemyScopeQuery
+from .role_scope_query import SQLAlchemyRoleScopeQuery
 
-__all__ = (
-    "SQLAlchemyAuditEventQuery",
-    "SQLAlchemyOpenAPIRegistryQuery",
-    "SQLAlchemyScopeQuery",
-)
+__all__ = ("SQLAlchemyRoleScopeQuery",)

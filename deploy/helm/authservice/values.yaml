@@ -1,3 +1,7 @@
+serviceIdentity: "authService"
+rootOperation: auth.getRoot
+openapiOperation: openapi.get
+
 replicaCount: 2
 
 image:
@@ -5,88 +9,37 @@ image:
   tag: "0.1.0"
   pullPolicy: IfNotPresent
 
-application:
-  environment: production
-  version: "0.1.0"
-
 http:
   port: 8000
 
-openapiRegistry:
-  maxDocumentBytes: 1048576
-  maxOperations: 1000
-  maxNestingDepth: 64
+environment:
+  AUTHSERVICE_APPLICATION__ENVIRONMENT: production
+  AUTHSERVICE_APPLICATION__VERSION: "0.1.0"
+  AUTHSERVICE_HTTP__HOST: 0.0.0.0
+  AUTHSERVICE_HTTP__PORT: "8000"
+  AUTHSERVICE_LOGFIRE__ENABLED: "true"
+  AUTHSERVICE_LOGFIRE__SEND_TO_LOGFIRE: "true"
+  AUTHSERVICE_LOGFIRE__CONSOLE: "true"
+  AUTHSERVICE_LOGFIRE__MINIMUM_LEVEL: info
+  AUTHSERVICE_DATABASE__POOL_SIZE: "10"
+  AUTHSERVICE_DATABASE__MAX_OVERFLOW: "10"
+  AUTHSERVICE_DATABASE__POOL_TIMEOUT_SECONDS: "10"
+  AUTHSERVICE_DATABASE__COMMAND_TIMEOUT_SECONDS: "30"
+  AUTHSERVICE_BUSINESS_OPERATION_FINGERPRINT__KEY_VERSION: "1"
 
-oauth2:
-  maxRequestedScopes: 128
-  maxScopeTokenLength: 255
-  maxTotalScopeClaimBytes: 16384
-  maxAccessTokenBytes: 24576
-
-rateLimit:
-  passwordAttempts: 10
-  passwordWindowSeconds: 300
-  passwordLockSeconds: 900
-  serviceCredentialAttempts: 20
-  serviceCredentialWindowSeconds: 300
-  serviceCredentialLockSeconds: 900
-
-maintenance:
-  cleanupBatchSize: 500
-  securityStateRetentionDays: 30
-  auditRetentionDays: 365
-
-database:
-  existingSecret: authservice-runtime
-  urlKey: database-url
-  poolSize: 10
-  maxOverflow: 10
-  poolTimeoutSeconds: 10
-  commandTimeoutSeconds: 30
-
-password:
-  timeCost: 3
-  memoryCostKib: 65536
-  parallelism: 4
-  hashLength: 32
-  saltLength: 16
-
-session:
-  idleTtlSeconds: 86400
-  absoluteTtlSeconds: 2592000
-
-refreshToken:
-  ttlSeconds: 604800
-  existingSecret: authservice-runtime
-  pepperKey: refresh-token-pepper
-
-serviceAuth:
-  accessTokenTtlSeconds: 300
-  credentialTtlSeconds: 7776000
-  existingSecret: authservice-runtime
-  credentialPepperKey: service-credential-pepper
-
-jwt:
-  issuer: authService
-  humanAudience: authService
-  accessTokenTtlSeconds: 600
-  clockSkewSeconds: 30
-  activeKid: key-20260822-a
-  activePrivateKeyPath: /run/secrets/pokerlost/auth/active-private.pem
-  retainedPublicKeyDirectory: /run/secrets/pokerlost/auth/public
-  jwksCacheTtlSeconds: 60
-  existingSigningSecret: authservice-signing
-  signingPrivateKeySecretItem: active-private.pem
-  publicKeySecretItems:
-    - key-20260822-a.pem
-
-logfire:
-  enabled: true
-  sendToLogfire: true
-  console: true
-  minimumLevel: info
-  existingSecret: authservice-logfire
-  tokenKey: token
+secretEnvironment:
+  AUTHSERVICE_BUSINESS_OPERATION_FINGERPRINT__SECRET:
+    enabled: true
+    name: authservice-runtime
+    key: business-operation-fingerprint-secret
+  AUTHSERVICE_LOGFIRE__TOKEN:
+    enabled: true
+    name: authservice-logfire
+    key: token
+  AUTHSERVICE_DATABASE__URL:
+    enabled: true
+    name: authservice-runtime
+    key: database-url
 
 gunicorn:
   workers: 2

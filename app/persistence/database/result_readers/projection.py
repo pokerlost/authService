@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
-from sqlalchemy.engine import MappingResult, Result
+from sqlalchemy.engine import MappingResult, Result, RowMapping
 
-from domain.value_model import ValueModel
+from persistence.projections import Projection
 
 
-class SQLAlchemyProjectionResultReader[ProjectionT: ValueModel]:
-    """Validate labeled SQLAlchemy mappings into immutable read projections."""
+def _projection_values(row: RowMapping) -> dict[str, object]:
+    """Copy one labeled SQLAlchemy row into a transport-independent mapping."""
+    values: dict[str, object] = {}
+    for key, value in row.items():
+        if not isinstance(key, str):
+            raise TypeError("Projection queries must label every selected value")
+        values[key] = value
+    return values
+
+
+class SQLAlchemyProjectionResultReader[ProjectionT: Projection]:
+    """Materialize labeled SQLAlchemy mappings into typed read projections."""
 
     def __init__[*RowT](
         self,
@@ -20,16 +30,19 @@ class SQLAlchemyProjectionResultReader[ProjectionT: ValueModel]:
         self._projection_type = projection_type
 
     def one(self) -> ProjectionT:
-        """Return exactly one validated projection."""
-        return self._projection_type.model_validate(self._result.one())
+        """Return exactly one materialized projection."""
+        return self._projection_type.from_mapping(_projection_values(self._result.one()))
 
     def one_or_none(self) -> ProjectionT | None:
-        """Return zero or one validated projection."""
+        """Return zero or one materialized projection."""
         row = self._result.one_or_none()
         if row is None:
             return None
-        return self._projection_type.model_validate(row)
+        return self._projection_type.from_mapping(_projection_values(row))
 
     def all(self) -> list[ProjectionT]:
-        """Materialize every validated projection in result order."""
-        return [self._projection_type.model_validate(row) for row in self._result.all()]
+        """Materialize every projection in result order."""
+        return [
+            self._projection_type.from_mapping(_projection_values(row))
+            for row in self._result.all()
+        ]

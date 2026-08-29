@@ -1,4 +1,4 @@
-"""Run the authService operator CLI as a module."""
+"""Run the service operator CLI as a module."""
 
 from __future__ import annotations
 

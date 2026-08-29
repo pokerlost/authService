@@ -13,7 +13,7 @@ class ApplicationResponse[ResultT](ResponseModel):
     """Single success and failure envelope for every public operation."""
 
     ok: bool = Field(description="Whether the operation completed successfully.")
-    result: ResultT | None = Field(default=None, description="Typed successful operation result.")
+    result: ResultT | None = Field(default=None, description="Typed successful result.")
     error: str | None = Field(default=None, description="Stable machine-readable error code.")
     error_message: str | None = Field(default=None, description="Safe public error message.")
 

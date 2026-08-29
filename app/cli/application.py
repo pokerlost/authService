@@ -1,4 +1,4 @@
-"""Small Typer interface for local authService startup."""
+"""Small Typer interface for local service startup."""
 
 from __future__ import annotations
 
@@ -8,26 +8,18 @@ import typer
 import uvicorn
 
 from configuration import Settings
-
-from .auto import auto_cli
-from .maintenance import maintenance_cli
-from .master import master_cli
-from .oauth import oauth_cli
+from service import SERVICE_NAME, SERVICE_SLUG
 
 cli = typer.Typer(
-    name="authService",
-    help="Run the authService service locally.",
+    name=SERVICE_SLUG,
+    help=f"Run the {SERVICE_NAME} service locally.",
     no_args_is_help=True,
 )
-cli.add_typer(auto_cli, name="auto")
-cli.add_typer(maintenance_cli, name="maintenance")
-cli.add_typer(master_cli, name="master")
-cli.add_typer(oauth_cli, name="oauth")
 
 
 @cli.callback()
 def operator_cli() -> None:
-    """Expose authService operator commands."""
+    """Expose development and service-owned operator commands."""
 
 
 @cli.command()
@@ -38,11 +30,7 @@ def run(
     ] = None,
     port: Annotated[
         int | None,
-        typer.Option(
-            min=1,
-            max=65535,
-            help="HTTP bind port override.",
-        ),
+        typer.Option(min=1, max=65535, help="HTTP bind port override."),
     ] = None,
     reload: Annotated[
         bool,
@@ -51,7 +39,6 @@ def run(
 ) -> None:
     """Start one local Uvicorn development worker."""
     settings = Settings()
-
     uvicorn.run(
         "api.application:create_app",
         factory=True,

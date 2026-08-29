@@ -1,55 +1,76 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "authservice.fullname" . }}
+  name: {{ include "pokerlost.service.fullname" . }}
   labels:
-    {{- include "authservice.labels" . | nindent 4 }}
+    {{- include "pokerlost.service.labels" . | nindent 4 }}
+  annotations:
+    pokerlost.com/service-id: {{ .Values.serviceIdentity | quote }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "authservice.selectorLabels" . | nindent 6 }}
+      {{- include "pokerlost.service.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "authservice.selectorLabels" . | nindent 8 }}
+        {{- include "pokerlost.service.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        pokerlost.com/service-id: {{ .Values.serviceIdentity | quote }}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: authservice
+        - name: {{ include "pokerlost.service.name" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - gunicorn
+          args:
+            - api.application:create_app()
+            - --worker-class
+            - uvicorn_worker.UvicornWorker
+            - --bind
+            - 0.0.0.0:{{ .Values.http.port }}
+            - --workers
+            - {{ .Values.gunicorn.workers | quote }}
+            - --timeout
+            - {{ .Values.gunicorn.timeout | quote }}
+            - --graceful-timeout
+            - {{ .Values.gunicorn.gracefulTimeout | quote }}
+            - --keep-alive
+            - {{ .Values.gunicorn.keepalive | quote }}
+            - --forwarded-allow-ips
+            - {{ .Values.gunicorn.forwardedAllowIps | quote }}
+            - --access-logfile
+            - "-"
+            - --error-logfile
+            - "-"
+            - --capture-output
+            - --worker-tmp-dir
+            - /tmp
           envFrom:
             - configMapRef:
-                name: {{ include "authservice.fullname" . }}
+                name: {{ include "pokerlost.service.fullname" . }}
+          {{- $enabledSecrets := dict }}
+          {{- range $name, $secret := .Values.secretEnvironment }}
+          {{- if $secret.enabled }}
+          {{- $_ := set $enabledSecrets $name $secret }}
+          {{- end }}
+          {{- end }}
+          {{- with $enabledSecrets }}
           env:
-            - name: AUTH_DATABASE__URL
+            {{- range $name, $secret := $enabledSecrets }}
+            - name: {{ $name | quote }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ required "database.existingSecret is required" .Values.database.existingSecret }}
-                  key: {{ .Values.database.urlKey }}
-            - name: AUTH_REFRESH_TOKEN__PEPPER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ required "refreshToken.existingSecret is required" .Values.refreshToken.existingSecret }}
-                  key: {{ required "refreshToken.pepperKey is required" .Values.refreshToken.pepperKey }}
-            - name: AUTH_SERVICE_AUTH__CREDENTIAL_PEPPER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ required "serviceAuth.existingSecret is required" .Values.serviceAuth.existingSecret }}
-                  key: {{ required "serviceAuth.credentialPepperKey is required" .Values.serviceAuth.credentialPepperKey }}
-            {{- if and .Values.logfire.enabled .Values.logfire.sendToLogfire }}
-            - name: AUTH_LOGFIRE__TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ required "logfire.existingSecret is required" .Values.logfire.existingSecret }}
-                  key: {{ .Values.logfire.tokenKey }}
+                  name: {{ required (printf "secretEnvironment.%s.name is required" $name) $secret.name }}
+                  key: {{ required (printf "secretEnvironment.%s.key is required" $name) $secret.key }}
             {{- end }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.http.port }}
@@ -77,21 +98,8 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            - name: signing-keys
-              mountPath: /run/secrets/pokerlost/auth
-              readOnly: true
       volumes:
         - name: tmp
           emptyDir:
             medium: Memory
             sizeLimit: 64Mi
-        - name: signing-keys
-          secret:
-            secretName: {{ required "jwt.existingSigningSecret is required" .Values.jwt.existingSigningSecret }}
-            items:
-              - key: {{ required "jwt.signingPrivateKeySecretItem is required" .Values.jwt.signingPrivateKeySecretItem }}
-                path: active-private.pem
-              {{- range .Values.jwt.publicKeySecretItems }}
-              - key: {{ . | quote }}
-                path: public/{{ . }}
-              {{- end }}

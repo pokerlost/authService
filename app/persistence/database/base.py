@@ -1,4 +1,4 @@
-"""Typed SQLAlchemy declarative base and shared naming conventions."""
+"""Typed SQLAlchemy declarative bases and shared naming conventions."""
 
 from __future__ import annotations
 

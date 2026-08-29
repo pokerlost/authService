@@ -1,12 +1,16 @@
-"""Application integrity failure category."""
+"""Application integrity error category."""
 
 from __future__ import annotations
+
+from typing import ClassVar
+
+from service import SERVICE_ERROR_PREFIX
 
 from .base import ApplicationError
 
 
 class IntegrityError(ApplicationError):
-    """Internal application invariant could not be preserved."""
+    """Application state violates a required invariant."""
 
-    error_code = "AUTH_INTEGRITY_ERROR"
-    public_message = "Application integrity validation failed."
+    error_code: ClassVar[str] = f"{SERVICE_ERROR_PREFIX}_INTEGRITY_ERROR"
+    public_message: ClassVar[str] = "Application state is inconsistent."

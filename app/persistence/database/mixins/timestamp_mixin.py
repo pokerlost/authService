@@ -1,4 +1,4 @@
-"""Timestamp persistence mixin."""
+"""Reusable timestamp persistence mixin."""
 
 from __future__ import annotations
 

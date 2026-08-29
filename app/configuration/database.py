@@ -1,4 +1,4 @@
-"""PostgreSQL connection and pool settings."""
+"""Mandatory PostgreSQL connection and pool settings."""
 
 from __future__ import annotations
 

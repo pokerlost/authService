@@ -5,33 +5,28 @@ from __future__ import annotations
 import logfire
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from api.request_context import get_correlation_id, get_request_id
+from api.request_context import correlation_id_from_state, request_id_from_state
+from service import SERVICE_ERROR_PREFIX
 
-
-class DatabaseUnavailableError(Exception):
-    """Required database connectivity is unavailable."""
+from .response import error_response
 
 
 async def handle_database_unavailable(request: Request, exception: Exception) -> JSONResponse:
-    """Return a sanitized dependency-unavailable response."""
-    if not isinstance(exception, DatabaseUnavailableError):
-        raise TypeError("Unexpected exception registered as DatabaseUnavailableError")
+    """Return a sanitized PostgreSQL availability response."""
+    if not isinstance(exception, OperationalError):
+        raise TypeError("Unexpected exception registered as OperationalError")
     logfire.warn(
         "PostgreSQL connectivity failed",
-        request_id=get_request_id(request),
-        correlation_id=get_correlation_id(request),
+        request_id=request_id_from_state(request),
+        correlation_id=correlation_id_from_state(request),
         _exc_info=exception,
     )
-    return JSONResponse(
+    return error_response(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content={
-            "ok": False,
-            "result": None,
-            "error": "AUTH_DATABASE_UNAVAILABLE",
-            "errorMessage": "Required database is unavailable",
-        },
+        error=f"{SERVICE_ERROR_PREFIX}_DATABASE_UNAVAILABLE",
+        error_message="Required database is unavailable",
     )
 
 
@@ -41,16 +36,12 @@ async def handle_database_error(request: Request, exception: Exception) -> JSONR
         raise TypeError("Unexpected exception registered as SQLAlchemyError")
     logfire.error(
         "Database operation failed",
-        request_id=get_request_id(request),
-        correlation_id=get_correlation_id(request),
+        request_id=request_id_from_state(request),
+        correlation_id=correlation_id_from_state(request),
         _exc_info=exception,
     )
-    return JSONResponse(
+    return error_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "ok": False,
-            "result": None,
-            "error": "AUTH_DATABASE_ERROR",
-            "errorMessage": "Database operation failed",
-        },
+        error=f"{SERVICE_ERROR_PREFIX}_DATABASE_ERROR",
+        error_message="Database operation failed",
     )

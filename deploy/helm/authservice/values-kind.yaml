@@ -3,27 +3,26 @@ replicaCount: 1
 image:
   pullPolicy: IfNotPresent
 
-application:
-  environment: development
-  version: "0.1.0"
+environment:
+  AUTHSERVICE_APPLICATION__ENVIRONMENT: development
+  AUTHSERVICE_APPLICATION__VERSION: "0.1.0"
+  AUTHSERVICE_LOGFIRE__ENABLED: "true"
+  AUTHSERVICE_LOGFIRE__SEND_TO_LOGFIRE: "false"
+  AUTHSERVICE_LOGFIRE__CONSOLE: "true"
+  AUTHSERVICE_LOGFIRE__MINIMUM_LEVEL: info
+  AUTHSERVICE_BUSINESS_OPERATION_FINGERPRINT__KEY_VERSION: "1"
 
-database:
-  existingSecret: authservice-local-runtime
-  poolSize: 5
-  maxOverflow: 5
-
-refreshToken:
-  existingSecret: authservice-local-runtime
-
-serviceAuth:
-  existingSecret: authservice-local-runtime
-
-logfire:
-  enabled: true
-  sendToLogfire: false
-  console: true
-  minimumLevel: info
-  existingSecret: ""
+secretEnvironment:
+  AUTHSERVICE_BUSINESS_OPERATION_FINGERPRINT__SECRET:
+    enabled: true
+    name: authservice-local-runtime
+    key: business-operation-fingerprint-secret
+  AUTHSERVICE_LOGFIRE__TOKEN:
+    enabled: false
+  AUTHSERVICE_DATABASE__URL:
+    enabled: true
+    name: authservice-local-runtime
+    key: database-url
 
 gunicorn:
   workers: 1

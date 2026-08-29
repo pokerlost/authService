@@ -8,12 +8,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.selectable import TypedReturnsRows
 
-from domain.value_model import ValueModel
 from persistence.database import UUIDModel
 from persistence.database.result_readers import (
     SQLAlchemyProjectionResultReader,
     SQLAlchemyScalarResultReader,
 )
+from persistence.projections import Projection
 
 
 class SQLAlchemyRepository:
@@ -32,7 +32,7 @@ class SQLAlchemyRepository:
         result = await self._session.execute(statement)
         return SQLAlchemyScalarResultReader(result)
 
-    async def _read_projection[ProjectionT: ValueModel, *RowT](
+    async def _read_projection[ProjectionT: Projection, *RowT](
         self,
         statement: TypedReturnsRows[tuple[*RowT]],
         projection_type: type[ProjectionT],

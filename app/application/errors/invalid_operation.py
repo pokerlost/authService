@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
+from service import SERVICE_ERROR_PREFIX
+
 from .base import ApplicationError
 
 
 class InvalidOperationError(ApplicationError):
-    """Requested transition or operation is not allowed."""
+    """Requested operation is invalid for current state or input semantics."""
 
-    error_code = "AUTH_INVALID_OPERATION"
-    public_message = "The requested operation is not allowed."
+    error_code: ClassVar[str] = f"{SERVICE_ERROR_PREFIX}_INVALID_OPERATION"
+    public_message: ClassVar[str] = "Operation is invalid."

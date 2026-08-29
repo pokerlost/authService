@@ -1,4 +1,4 @@
-"""Typed scalar extraction from SQLAlchemy results."""
+"""Typed scalar extraction from SQLAlchemy execution results."""
 
 from __future__ import annotations
 

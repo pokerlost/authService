@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from pydantic import ConfigDict
-
-from .api_model import APIModel
+from pydantic import BaseModel, ConfigDict
 
 
-class ResponseModel(APIModel):
-    """Immutable public response model."""
+class ResponseModel(BaseModel):
+    """Strict immutable base for application-owned API responses."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        hide_input_in_errors=True,
+        strict=True,
+        validate_default=True,
+    )

@@ -9,8 +9,8 @@ from fastapi import Depends, Request
 from configuration import Settings
 
 
-def get_settings(request: Request) -> Settings:
-    """Return settings attached separately by the application lifespan."""
+def _resolve_settings(request: Request) -> Settings:
+    """Return settings attached by the application lifespan."""
     settings = request.app.state.settings
     if not isinstance(settings, Settings):
         raise RuntimeError("Application settings are not initialized")
@@ -19,5 +19,5 @@ def get_settings(request: Request) -> Settings:
 
 type SettingsDep = Annotated[
     Settings,
-    Depends(get_settings),
+    Depends(_resolve_settings),
 ]

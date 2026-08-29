@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
+from service import SERVICE_ERROR_PREFIX
+
 from .base import ApplicationError
 
 
 class ConflictError(ApplicationError):
-    """Requested state conflicts with existing application state."""
+    """Current state conflicts with the requested operation."""
 
-    error_code = "AUTH_CONFLICT"
-    public_message = "The requested operation conflicts with existing state."
+    error_code: ClassVar[str] = f"{SERVICE_ERROR_PREFIX}_CONFLICT"
+    public_message: ClassVar[str] = "Operation conflicts with current state."

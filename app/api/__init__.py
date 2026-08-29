@@ -1,3 +1,3 @@
-"""HTTP API composition and transport package."""
+"""HTTP API composition package."""
 
 from __future__ import annotations
