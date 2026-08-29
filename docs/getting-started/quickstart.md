@@ -38,7 +38,8 @@ Retrieve the public OpenAPI document through the `.env.example` publication oper
 curl --fail-with-body http://127.0.0.1:8000/openapi.get
 ```
 
-That path reflects the `.env.example` value `OPENAPI_OPERATION=openapi.get`. If configuration uses
+That path reflects the `.env.example` value
+`AUTHSERVICE_OPENAPI_OPERATION=openapi.get`. If configuration uses
 `contract.getOpenAPI`, request `/contract.getOpenAPI` instead.
 
 The response uses the same four-field envelope. Its `result` is the complete FastAPI-generated OpenAPI object; the object includes the following stable service metadata:

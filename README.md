@@ -1,8 +1,8 @@
 # authService
 
 `authService` is a generated PokerLost FastAPI service foundation with PostgreSQL,
-SDK-compatible API/OpenAPI publication, observability, Docker, and Helm. Business functionality is
-absent until it is defined in `SERVICE.md`.
+SDK-compatible API/OpenAPI publication, observability, Docker, and Helm. Concrete HTTP business
+operations are added only when their full application flow is implemented.
 
 Read `docs/index.md` for the complete guide and `AGENTS.md` for normative engineering rules.
 Python 3.14 or newer is required.
