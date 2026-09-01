@@ -9,9 +9,9 @@ Nested fields use a double underscore, so the general form is:
 AUTHSERVICE_<GROUP>__<FIELD>
 ```
 
-For example, `database.url` maps to `AUTHSERVICE_DATABASE__URL`. Names are case-insensitive, but
-`.env.example` uses uppercase names consistently. Process environment values override values from
-`.env` according to Pydantic Settings behavior.
+For example, `database.url` maps to `AUTHSERVICE_DATABASE__URL`. Names are
+case-insensitive, but `.env.example` uses uppercase names consistently. Process environment values
+override values from `.env` according to Pydantic Settings behavior.
 
 ## Base operations
 
@@ -90,13 +90,13 @@ The database URL must include a username, password, host, and database. It is tr
 | `token` | `AUTHSERVICE_LOGFIRE__TOKEN` | Optional write token, required when remote delivery is enabled. |
 
 Keep the signing private key, Logfire token, and database URL outside source control. Kubernetes
-mounts the private key from a Secret and supplies the other values through
-Secret references rather than the chart ConfigMap; see
+mounts the key from a Secret and supplies the other values through Secret references rather than
+the chart ConfigMap; see
 `docs/development/containers-and-kubernetes.md`.
 
 ## Concrete outbound targets
 
-The pristine service has no outbound target settings, credentials, token storage, or retry
+authService has no outbound target settings, credentials, token storage, or retry
 configuration. When `SERVICE.md` declares a real target, add one focused immutable settings group
 named for that target and one explicitly named field on root `Settings`. A target base URL and
 request timeout are deployment configuration. Token credentials, storage, refresh, requested exact

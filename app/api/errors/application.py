@@ -9,8 +9,11 @@ from fastapi.responses import JSONResponse
 from api.request_context import request_id_from_state
 from application.errors import (
     ApplicationError,
+    AuthenticationRequiredError,
     ConflictError,
+    InsufficientScopeError,
     IntegrityError,
+    InvalidAccessTokenError,
     InvalidOperationError,
     NotFoundError,
 )
@@ -33,6 +36,10 @@ async def handle_application_error(request: Request, exception: Exception) -> JS
         return get_token_error_response(GetTokenErrorCode.SERVER_ERROR)
     if isinstance(exception, NotFoundError):
         status_code = status.HTTP_404_NOT_FOUND
+    elif isinstance(exception, (AuthenticationRequiredError, InvalidAccessTokenError)):
+        status_code = status.HTTP_401_UNAUTHORIZED
+    elif isinstance(exception, InsufficientScopeError):
+        status_code = status.HTTP_403_FORBIDDEN
     elif isinstance(exception, ConflictError):
         status_code = status.HTTP_409_CONFLICT
     elif isinstance(exception, InvalidOperationError):

@@ -1,7 +1,7 @@
 # authService documentation
 
-This documentation describes the current authService body-only Pokerlost surface, service-client foundation,
-architecture, and verified development workflows.
+This documentation describes the current authService body-only Pokerlost surface, service-client
+foundation, architecture, and verified development workflows.
 
 ## Getting started
 
@@ -13,7 +13,8 @@ architecture, and verified development workflows.
 
 - `docs/api/overview.md` — API overview.
 - `docs/api/operation-contract.md` — operation contract.
-- `docs/api/application-response.md` — application response.
+- `docs/api/pokerlost-response.md` — canonical response envelope.
+- `docs/api/body-authorization.md` — body authentication and exact scopes.
 - `docs/api/errors.md` — errors.
 - `docs/api/openapi-and-sdk.md` — OpenAPI and SDK.
 - `docs/api/public-surface.md` — public surface.

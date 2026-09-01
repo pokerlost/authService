@@ -80,7 +80,7 @@ are excluded from structured logs and exception payloads.
 A consumer application handler delegates token acquisition to a service-owned application port.
 Its focused `pypokerlost` composition uses the generated `GetToken` method and
 `PokerlostAuthorizationMiddleware`; the SDK owns transport, body authorization, token lifecycle,
-and shared wire contracts. Canonical retry is available through the middleware package.
+and shared wire models. Canonical retry is available through the middleware package.
 
 ```python
 from pypokerlost import PokerlostRequestOptions

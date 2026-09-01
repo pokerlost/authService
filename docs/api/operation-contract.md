@@ -1,56 +1,63 @@
 # Operation contract
 
-authService uses the private Pokerlost JSON operation-call protocol over HTTPS. It is not an
-OAuth2, Bearer, Basic, API-key, cookie, or header-authentication wire protocol.
+Pokerlost business APIs use one private JSON operation protocol over HTTPS.
 
 ## Operations and paths
 
-Business operation identifiers match:
+Every business operation matches:
 
 ```text
-^[a-z][A-Za-z0-9]*$
+operation_id = lowerCamelCase verb name
+path         = "/" + operation_id
+HTTP method  = POST
 ```
 
-Every business operation uses `POST /<operationId>`. Business input never uses path, query, header,
-or cookie parameters. `GET /`, `GET /getOpenApi`, and existing health probes are public bodyless
-infrastructure exceptions.
+The exact identifier pattern is `^[a-z][A-Za-z0-9]*$`. Valid examples include `getMe`,
+`registerAccount`, and `provisionHuman`. Dots, underscores, hyphens, and uppercase initials are
+invalid. The generator validates all source documents together and rejects global operation or
+schema collisions before writing.
 
-Routers are flat modules built by `create_<feature>_router(...)` factories. Endpoints are registered
-with decorators and write stable operation IDs directly in the decorator. There are no dotted
-service namespaces, derived path constants, imperative route registration, or OpenAPI extras.
+`GET /`, `GET /getOpenApi`, and existing health probes are public bodyless infrastructure
+exceptions. Business GET bodies and other business HTTP methods are unsupported.
 
-## Request bodies
+Each router is one flat module with a factory and decorator. Do not use nested router directories,
+imperative registration, route constants, or post-hoc mutation.
 
-Public and token operations use one JSON body:
+## Requests
 
-```json
-{"payload": {}}
-```
-
-Protected operations use the only other envelope:
+A public operation accepts `PokerlostRequest[Payload]`:
 
 ```json
 {
-  "authorization": {"access_token": "<secret>"},
+  "payload": {
+    "username": "alice"
+  }
+}
+```
+
+A protected operation accepts `PokerlostAuthorizedRequest[Payload]`:
+
+```json
+{
+  "authorization": {
+    "access_token": "secret-value"
+  },
   "payload": {}
 }
 ```
 
-`getToken` uses the public envelope because it acquires a token. Its client credentials, scopes,
-and audience are fields of `payload`; there is no form encoding or `grant_type`.
+Payload types are named closed Pydantic models with snake_case wire fields. Requests do not use
+business path/query parameters, cookies, form data, caller-supplied transport metadata, embedded
+anonymous bodies, or manual content negotiation.
 
 ## Responses
 
-Success and handled failure use `PokerlostResponse`, documented in
-`docs/api/application-response.md`. No response header carries authentication challenges or retry
-delay.
+Every success and handled failure uses `PokerlostResponse`. Routes publish the typed success model
+and `PokerlostResponse[None]` for expected failures. The five-field invariant is documented in
+`docs/api/pokerlost-response.md`.
 
 ## Scopes
 
-Scope identifiers are separate from operation IDs and match dotted lowerCamelCase segments. A
-protected server route declares exact scopes with FastAPI `Security(..., scopes=[...])`, while the
-matching flat SDK method declares the same `required_scopes`. OpenAPI represents body authorization
-through the request schema; it does not publish a misleading OAuth2 or API-key security scheme.
-
-authService has no implemented protected route in the current stage. `getToken` is public at the
-transport level and its SDK method has empty `required_scopes`.
+Scope IDs are separate from operation IDs. Protected routes declare exact values through FastAPI
+`Security`, while the matching SDK method declares the same `required_scopes` tuple. See
+`docs/api/body-authorization.md`.

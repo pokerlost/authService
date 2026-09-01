@@ -1,7 +1,7 @@
 # Architecture overview
 
-This page defines the generated service layers and their dependency direction without prescribing
-business behavior that belongs to a concrete service.
+This page defines authService layers and dependency direction around its implemented token
+authority behavior.
 
 ## Dependency direction
 
@@ -50,30 +50,27 @@ the application or domain layers.
 | `api` | Application factory, lifespan, middleware, dependencies, routes, public schemas, OpenAPI, and safe errors. |
 | `application` | Commands, queries, results, meaningful Protocol ports, handler contracts, and concrete use-case orchestration. |
 | `domain` | Framework-independent internal values and closed domain or platform categories. |
-| `persistence` | SQLAlchemy metadata, sessions, repositories, result readers, projections, and concrete adapters. |
-| `security` | OAuth client-secret generation and verification plus the PyJWT-backed RS256 signer. |
+| `persistence` | SQLAlchemy metadata, sessions, repository execution, and concrete adapters. |
 | `configuration` | Typed settings, environment loading, and startup validation. |
 | `observability` | Privacy-safe Logfire configuration and FastAPI/SQLAlchemy instrumentation. |
-| `cli` | Operator entry points such as local application startup. |
+| `security` | Client-secret processing and the PyJWT-backed RS256 signer. |
+| `cli` | Operator startup and transactional service-client bootstrap. |
 
-Public request and response models remain API artifacts; ORM models and projections remain
-persistence artifacts. A route performs the explicit translation between those boundaries rather
-than sharing one model across layers.
+Public request and response models remain API artifacts; ORM models remain persistence artifacts.
+When a service needs a read projection, it is a focused persistence artifact. A route performs the
+explicit translation between those boundaries rather than sharing one model across layers.
 
 ## Runtime foundation
 
 `docs/architecture/request-lifecycle.md` explains composition and per-request flow.
 `docs/architecture/persistence-and-transactions.md` defines PostgreSQL session ownership. The API
-wire surface is documented separately in `docs/api/overview.md`.
-
-The current checkout adds the service-client credential foundation, a transactional operator
-bootstrap command, and body-only JSON `POST /getToken` on top of the authorization domain and persistence
-foundation. The detailed responsibility split and authorization rules are documented in
-`docs/architecture/service-client-credentials.md`.
-
-When `SERVICE.md` declares a real
+wire surface is documented separately in `docs/api/overview.md`. When `SERVICE.md` declares a real
 outbound target, `docs/architecture/inter-service-clients.md` defines the target-specific SDK
-client, service-owned token port and adapter, retry, dependency, and lifecycle extension.
+client, middleware, token-store ownership, retry, and lifecycle extension. Inbound local
+verification uses the application port described in `docs/api/body-authorization.md`.
 
-authService does not instantiate an outbound client to itself or accountsService for credential
-validation, token issuance, login-grant exchange, refresh, or JWT signing.
+The current service owns authorization principals, client/grant persistence, operator bootstrap,
+and public body-only `POST /getToken`. Lifespan constructs one process-owned signer; no access token
+is persisted. authService has no outbound target, token store, placeholder remote client, or
+service-specific retry configuration. See
+`docs/architecture/service-client-credentials.md` for the exact ownership rules.

@@ -24,33 +24,17 @@ session. Routes, application handlers, repositories, and query adapters do not c
 
 Repositories and query adapters receive the request session and execute explicit SQLAlchemy 2
 statements. They do not create engines or sessions and do not complete the transaction. ORM
-entities, persistence projections, and public API response models remain separate artifacts.
+entities and public API response models remain separate artifacts. A service that needs a read
+projection defines that focused type in its persistence layer and translates it explicitly.
 
-The shared template supplies metadata, repository, result-reader, and projection foundations.
-authService adds concrete authorization and OAuth client models only for responsibilities defined
-in `SERVICE.md`.
+The shared foundation supplies metadata and a narrow repository execution base without a generic
+result-reader wrapper or projection framework. authService adds concrete authorization/client
+models, repositories, and query adapters for responsibilities defined in `SERVICE.md`.
 
-AUTH-02 persists OAuth clients, grant-type permissions, digest-only client credentials, direct
-service and client scope grants, and direct service and client audience grants. The audience value
-is the exact canonical resource URI; scope and audience tables contain no wildcard or implicit
-role-derived machine grant.
-
-The concrete tables are `oauth_clients`, `oauth_client_grant_types`, `oauth_client_secrets`,
-`service_scope_grants`, `oauth_client_scope_grants`, `service_audience_grants`, and
-`oauth_client_audience_grants`. Their foreign keys retain the existing authorization principal and
-scope catalog as explicit security dependencies rather than broad delete cascades.
-
-## Service-client transaction boundaries
-
-`authservice bootstrap-service-client` opens one local session transaction for the service
-principal, bound confidential client, grant type, both scope-grant sets, both audience-grant sets,
-and active secret digest. A conflict or validation failure rolls the entire bundle back. The CLI
-prints the one-time raw secret only after the context exits successfully and commits.
-
-`POST /getToken` uses one request-owned transaction for authorization reads. Its query adapter
-returns an immutable issuance context rather than ORM entities. The application handler evaluates
-the accepted credential records and exact grant intersections, then signs through the
-process-owned signer. It does not write or persist the access token.
+Service-client bootstrap persists one service principal, confidential client, credential digest,
+grant-type permission, and exact service/client scope and audience grants in one transaction.
+`POST /getToken` uses one request-owned transaction for authorization reads and signs through the
+lifespan-owned signer without persisting the access token.
 
 ## Remote calls
 
@@ -60,17 +44,15 @@ workflow so remote I/O and a short local persistence phase have explicit orderin
 semantics, without treating either side as a distributed commit participant.
 
 The prohibited span includes service-owned token acquisition, the first target attempt,
-body `retry_after` or jitter backoff sleep, and every later attempt. End the request-owned transaction
+server-directed or jitter backoff sleep, and every later attempt. End the request-owned transaction
 before entering that outbound phase. Reuse the service's existing workflow or reconciliation seam
 for an ambiguous remote outcome; do not introduce an unowned transaction, hold a session idle, or
 treat transport retry as durable business reconciliation.
 
 Mutation retry is allowed only when the target contract persists idempotency and every attempt
 uses the same `business_operation_id` and the same semantic payload. The SDK neither creates that
-key nor persists workflow, outbox, or reconciliation state. Detailed client and retry composition
-is documented in `docs/architecture/inter-service-clients.md`.
-
-authService's current token issuance performs no outbound call.
+key nor persists workflow, outbox, or reconciliation state. Detailed client and retry
+composition is documented in `docs/architecture/inter-service-clients.md`.
 
 ## Failure mapping
 

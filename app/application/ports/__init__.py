@@ -13,6 +13,7 @@ from .oauth_client_secret_processor import (
     GeneratedOAuthClientSecret,
     OAuthClientSecretProcessor,
 )
+from .pokerlost_token_verifier import PokerlostTokenVerifier
 from .role_scope_query import RoleScopeQuery
 from .service_access_token_signer import ServiceAccessTokenSigner
 
@@ -24,6 +25,7 @@ __all__ = (
     "Handler",
     "OAuthClientRepository",
     "OAuthClientSecretProcessor",
+    "PokerlostTokenVerifier",
     "RoleScopeQuery",
     "ServiceAccessTokenSigner",
 )

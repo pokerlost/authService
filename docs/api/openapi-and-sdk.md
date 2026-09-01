@@ -1,27 +1,38 @@
 # OpenAPI and SDK
 
-authService publishes FastAPI-generated OpenAPI through `GET /getOpenApi` inside a
-`PokerlostResponse`. Built-in `/openapi.json`, `/docs`, and `/redoc` endpoints remain disabled.
+`authService` publishes the unmodified FastAPI OpenAPI 3.1 document through
+`GET /getOpenApi` inside `PokerlostResponse`.
 
-The document contains only normal routes, request and response schemas, status responses,
-summaries, descriptions, and tags. It has no service-identity extension, Python import metadata,
-custom authorization extension, or OAuth2/Basic/API-key security scheme.
+## Publication
 
-Body authentication is represented honestly by request schemas:
+`Settings.openapi_operation` is validated as `PokerlostOperation`; the generated value is
+`getOpenApi`. Built-in `/openapi.json`, `/docs`, and `/redoc` routes are disabled.
 
-- public operations use `PokerlostRequest[Payload]`;
-- protected operations use `PokerlostAuthorizedRequest[Payload]` and require
-  `authorization.access_token`.
+The document contains ordinary paths, request schemas, response schemas, summaries, descriptions,
+tags, and status responses. It contains no project extension, service identity, custom Python
+metadata, or misleading header-oriented security scheme.
 
-OpenAPI cannot express exact body-token scopes through `securitySchemes`. Exact scopes therefore
-remain in the route's `Security(..., scopes=[...])` dependency and the flat SDK method's
-`required_scopes`; repository checks compare those sources for implemented protected operations.
+The current `/getToken` operation is public at transport level. Its OpenAPI request body is
+`PokerlostRequest[GetTokenRequest]`, and its SDK method has an empty `required_scopes` tuple.
 
-The generator validates all source documents together, requires single lowerCamelCase operation
-IDs, `POST /<operationId>` for business calls, JSON requests, the canonical response envelope, and
-globally unique method/schema names. Generated methods and types are flat. It does not infer scopes
-from prose or operation names and does not require service metadata.
+Protected operations expose `PokerlostAuthorizedRequest` in `requestBody`, so
+`authorization.access_token` is visible in the schema. OpenAPI cannot express the exact scopes
+required by a body token. Reviewers compare route `Security` metadata with the SDK method's
+`required_scopes` tuple instead of adding a custom extension.
 
-`getToken` is generated as `GetToken` and is public at the transport level. Its JSON request owns
-client credentials, scopes, and audience. Future-facing SDK stubs do not imply that corresponding
-authService endpoints exist.
+## Generation
+
+The authoritative generator reads all available service documents together, skips infrastructure
+routes, validates the POST/JSON/envelope contract and global name uniqueness, then writes flat
+method/type modules. It does not depend on service identity metadata and does not infer scopes from
+descriptions.
+
+Manual future-facing method stubs remain outside the generator manifest unless explicitly owned.
+They perform ordinary SDK calls when their endpoints exist and never return synthetic success.
+
+## Calls
+
+Inter-service calls use `PokerlostClient` and generated `PokerlostMethod` classes. Public calls
+serialize `PokerlostRequest`; protected calls pass through retry then authorization middleware and
+serialize `PokerlostAuthorizedRequest`. The complete lifecycle is in
+`docs/architecture/inter-service-clients.md`.

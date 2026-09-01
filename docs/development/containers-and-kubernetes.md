@@ -32,41 +32,36 @@ make helm-lint
 make helm-template
 ```
 
-These targets wrap `helm lint` and `helm template`; they do not install or upgrade a cluster
-release.
+These targets wrap `helm lint` and `helm template`; they do not install or upgrade a cluster release.
 
 ## Runtime configuration and probes
 
-The Deployment exposes the HTTP container port and configures both liveness and readiness probes
-as `GET /`. The root endpoint does not require a database query, so it checks that the application
-process can serve its base response without turning the probe into a business operation.
+The Deployment exposes the HTTP container port and configures both liveness and readiness probes as `GET /`. The root endpoint does not require a database query, so it checks that the application process can serve its base response without turning the probe into a business operation.
 
 The top-level Helm values `rootOperation` and `openapiOperation` map explicitly to
-`AUTHSERVICE_ROOT_OPERATION` and `AUTHSERVICE_OPENAPI_OPERATION` in the generated ConfigMap. Other
-non-secret environment values come from the `environment` map. Database credentials and the
-optional Logfire token use `secretEnvironment` references to existing Kubernetes Secret names and
-keys. Never place secret values in `environment`, a ConfigMap, a committed values file, or rendered
-documentation.
+`AUTHSERVICE_ROOT_OPERATION` and
+`AUTHSERVICE_OPENAPI_OPERATION` in the generated ConfigMap. Other non-secret
+environment values come from the `environment` map. Database credentials and the optional Logfire
+token use `secretEnvironment` references to existing Kubernetes Secret names and keys. Never place
+secret values in `environment`, a ConfigMap, a committed values file, or rendered documentation.
 
-The service-owned `token` values supply the exact issuer and access-token TTL. The focused
-`jwtSigningKey` values supply the non-secret key ID, mounted path, existing Secret name, and Secret
-data key. The ConfigMap receives only issuer, TTL, key ID, and path. The Deployment projects only
-the selected private-key entry and mounts it as one read-only file at the same path published as
-`AUTHSERVICE_JWT__PRIVATE_KEY_PATH`; the PEM content never enters the ConfigMap, environment, image,
-or chart values. The default file mode and pod `fsGroup` keep the mount readable by the non-root
-service process.
+The service-owned `token` values supply the exact issuer and access-token TTL. `jwtSigningKey`
+supplies the non-secret key ID, mounted path, existing Secret name, and Secret data key. Only the
+selected private-key entry is mounted read-only; PEM material never enters ConfigMap data,
+environment values, the image, or committed chart values.
 
-The current chart contains no outbound target, outbound credential, token storage, or retry values.
-If a future implemented use case introduces a real target, its base URL and request timeout use
-the existing non-secret `environment` or explicit ConfigMap convention. Credential and token-store
-inputs remain service-owned and are wired only when the use case needs them; secrets use
+The current chart contains no outbound target, outbound credential, token storage, or retry
+values. A future real target may add its base URL and request timeout through the existing
+non-secret `environment` or explicit ConfigMap convention. Credential and token-store inputs remain
+service-owned and are wired only when an implemented use case needs them; secrets use
 `secretEnvironment` and existing Kubernetes Secret references. `PokerlostRetryPolicy` values never
-become deployment settings. Authentication material never becomes chart values, ConfigMap
-data, logs, or rendered manifests. See `docs/architecture/inter-service-clients.md` for the
+become deployment settings. Authentication material and tokens never become chart values,
+ConfigMap data, logs, or rendered manifests. See `docs/architecture/inter-service-clients.md` for the
 ownership and lifecycle pattern.
 
-The chart also disables service-account token mounting, requests a non-root runtime, uses a
+The ClusterIP is an internal target and must remain behind mandatory production HTTPS/TLS
+termination. Do not expose the generated HTTP container port directly as a plaintext production
+edge. The chart also disables service-account token mounting, requests a non-root runtime, uses a
 read-only root filesystem, drops Linux capabilities, and mounts a bounded writable temporary
-volume. Both probes remain `GET /`; the private-key mount does not change their purpose. Review
-rendered output and environment-specific Secret references before deployment; successful linting
-and rendering do not prove cluster readiness or application correctness.
+volume. Review rendered output and environment-specific Secret references before deployment;
+successful linting and rendering do not prove cluster readiness or application correctness.

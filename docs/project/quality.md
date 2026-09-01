@@ -24,17 +24,21 @@ Their exact composition is documented in `docs/development/commands.md`.
 - `helm lint` and `helm template` check chart structure and rendered Kubernetes resources.
 - The authoritative OpenAPI generator and installed-SDK end-to-end probe check `pypokerlost` compatibility when an API wire contract changes.
 - When a concrete outbound integration changes, run an ephemeral probe for final public SDK
-  imports, target settings, lifespan start/stop, body authorization, explicit safe retry,
-  one-attempt default behavior, and the absence of a database transaction around remote I/O. Do
-  not claim or retain that probe as a pristine test suite.
+  imports, target settings, lifespan start/stop, body authorization injection, explicit safe
+  retry, one-attempt default behavior, and the absence of a database transaction around remote
+  I/O. Do not claim or retain that disposable probe as a maintained test suite.
+- Protected-route probes cover missing/malformed body authentication, invalid token/audience,
+  missing exact scope, exact-scope success, and absence of secrets from logs/errors.
 
 Docker, Helm, PostgreSQL, and SDK/OpenAPI workflows remain explicit because they can require local
 daemons, credentials, network access, or external checkouts. See
-`docs/development/database-migrations.md`,
-`docs/development/containers-and-kubernetes.md`, and `docs/api/openapi-and-sdk.md`.
+`docs/development/database-migrations.md`, `docs/development/containers-and-kubernetes.md`, and
+`docs/api/openapi-and-sdk.md`.
 
 ## Interpretation
 
 These checks detect specific formatting, typing, syntax, documentation, metadata, packaging, rendering, and compatibility failures. They are not proof of business correctness, production readiness, or security.
 
-The pristine template does not claim unit or integration tests, coverage, a security audit, performance measurements, or CI/CD. Do not add or publish such claims unless the corresponding maintained workflow exists and its current result was actually verified.
+This repository does not claim unit or integration coverage, a security audit, performance
+measurements, or CI/CD. Do not add or publish such claims unless the corresponding maintained
+workflow exists and its current result was actually verified.
