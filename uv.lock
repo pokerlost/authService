@@ -991,7 +991,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.7,<3" },
     { name = "pydantic-settings", specifier = ">=2.10.1,<3" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.13.0,<3" },
-    { name = "pypokerlost", git = "ssh://git@github.com/pokerlost/pypokerlost.git?rev=a10cc8872c5de7e0065b3551e96d23fa2e99958f" },
+    { name = "pypokerlost", git = "ssh://git@github.com/pokerlost/pypokerlost.git?rev=3433a6667c92043f7b3ca479e386878d98a57868" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.41,<3" },
     { name = "typer", specifier = ">=0.16.0,<1" },
     { name = "uvicorn", specifier = ">=0.35.0,<1" },
@@ -1141,7 +1141,7 @@ crypto = [
 [[package]]
 name = "pypokerlost"
 version = "0.2.0"
-source = { git = "ssh://git@github.com/pokerlost/pypokerlost.git?rev=a10cc8872c5de7e0065b3551e96d23fa2e99958f#a10cc8872c5de7e0065b3551e96d23fa2e99958f" }
+source = { git = "ssh://git@github.com/pokerlost/pypokerlost.git?rev=3433a6667c92043f7b3ca479e386878d98a57868#3433a6667c92043f7b3ca479e386878d98a57868" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
