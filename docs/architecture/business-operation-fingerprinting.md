@@ -22,9 +22,9 @@ are private module functions, and the implementation has no static methods.
 authService requires the dedicated fingerprint secret during `Settings` validation because
 idempotent authorization-state mutations are a declared service responsibility. Application
 lifespan constructs one process-owned `BusinessOperationFingerprinter` and stores it in immutable
-`ApplicationResources`. The current checkout does not yet expose concrete business routes or
-persist idempotency records; those capabilities must not be inferred from the available runtime
-primitive.
+`ApplicationResources`. The current OAuth2 token operation is intentionally non-idempotent, and
+the operator bootstrap is a one-shot local command; neither uses this primitive or persists an
+idempotency record.
 
 A future concrete idempotent operation must:
 

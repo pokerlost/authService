@@ -98,8 +98,23 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- if .Values.jwtSigningKey.enabled }}
+            - name: jwt-signing-key
+              mountPath: {{ required "jwtSigningKey.mountPath is required" .Values.jwtSigningKey.mountPath | quote }}
+              subPath: {{ required "jwtSigningKey.secretKey is required" .Values.jwtSigningKey.secretKey | quote }}
+              readOnly: true
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir:
             medium: Memory
             sizeLimit: 64Mi
+        {{- if .Values.jwtSigningKey.enabled }}
+        - name: jwt-signing-key
+          secret:
+            secretName: {{ required "jwtSigningKey.secretName is required" .Values.jwtSigningKey.secretName | quote }}
+            defaultMode: 0440
+            items:
+              - key: {{ required "jwtSigningKey.secretKey is required" .Values.jwtSigningKey.secretKey | quote }}
+                path: {{ required "jwtSigningKey.secretKey is required" .Values.jwtSigningKey.secretKey | quote }}
+        {{- end }}

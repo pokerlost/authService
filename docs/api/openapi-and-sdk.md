@@ -31,17 +31,23 @@ preserves FastAPI-generated security metadata without constructing or rewriting 
 ## Method generation
 
 The authoritative generator reads the wrapped publication, ignores the two system paths, and
-creates typed `PokerlostMethod` and response classes for compatible service operations. The
-pristine service has no business operation, so it intentionally produces no callable service
-method.
+creates typed `PokerlostMethod` and response classes for compatible PokerLost application
+operations.
+
+The method generator sees `/oauth.token`, but its form request is intentionally outside ordinary
+generated JSON operation input. The service keeps the accurate FastAPI-generated form, HTTP Basic,
+success-envelope, and failure-envelope contract visible instead of hiding or rewriting it. The SDK
+owns one focused internal token request in `ClientCredentialsTokenProvider`; that path reuses the
+canonical session transport and `ApplicationResponse` decoder rather than creating a generated
+business method or a consumer-owned HTTP client.
 
 Generation is repository-owned development tooling in the authoritative `pypokerlost` checkout;
 it is not an installed command in the runtime SDK distribution. Service mode receives the
 publication operation explicitly through `--openapi-operation`; its default remains `openapi.get`.
-When the wire contract changes, run the compatibility workflow against the current SDK source and
-verify both service-mode and saved-file generation. The exact operation, request, response, and
-supported-schema requirements are documented in `docs/api/operation-contract.md` and
-`docs/api/application-response.md`.
+When an application-operation wire contract changes, run the compatibility workflow against the
+current SDK source and verify both service-mode and saved-file generation. The exact operation,
+request, response, and supported-schema requirements are documented in
+`docs/api/operation-contract.md` and `docs/api/application-response.md`.
 
 ## Inter-service calls
 
@@ -51,5 +57,25 @@ response types. A concrete service creates a client only for a target declared b
 shutdown. It does not create a parallel HTTP client, URL builder, response decoder, or local copy
 of a remote service DTO.
 
-The current base endpoints and their publication models are listed in
+A service consumer imports authentication and middleware from the focused public facades:
+
+```python
+from pypokerlost.client.auth import ClientCredentials, ClientCredentialsTokenProvider
+from pypokerlost.middleware import BearerTokenMiddleware, RetryMiddleware
+```
+
+The target client registers `RetryMiddleware()` first and
+`BearerTokenMiddleware(token_provider)` second. The first middleware is outermost, so every retry
+attempt re-enters bearer resolution while the provider normally serves its process-local cached
+token. Retry remains off without an explicit per-call `RequestOptions(retry=RetryPolicy(...))`, and
+the SDK never automatically replays `401` or `403`.
+
+Business mutation replay remains the consumer's responsibility: it must reuse the same
+`business_operation_id` and semantic payload and rely on the target's persisted idempotency
+contract. A consumer must not hold a PostgreSQL transaction across token acquisition, an outbound
+method call, or retry backoff. authService itself does not instantiate an outbound client to itself
+or accountsService; token issuance, login-grant exchange, refresh, and JWT signing are local
+service responsibilities.
+
+The current endpoints and their publication models are listed in
 `docs/api/public-surface.md`.

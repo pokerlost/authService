@@ -7,8 +7,10 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 from api.request_context import correlation_id_from_state, request_id_from_state
+from application.oauth2 import OAuth2ErrorCode
 from service import SERVICE_ERROR_PREFIX
 
+from .oauth2 import is_oauth_token_request, oauth2_error_response
 from .response import error_response
 
 
@@ -22,6 +24,8 @@ async def handle_unexpected_error(request: Request, exception: Exception) -> JSO
         correlation_id=correlation_id,
         _exc_info=exception,
     )
+    if is_oauth_token_request(request):
+        return oauth2_error_response(OAuth2ErrorCode.SERVER_ERROR)
     return error_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         error=f"{SERVICE_ERROR_PREFIX}_INTERNAL_ERROR",

@@ -9,15 +9,15 @@ response handling in the generated service.
 and registers request-context middleware, exception handlers, routes, and instrumentation. It
 disables the built-in OpenAPI and documentation URLs.
 
-Application lifespan creates the async SQLAlchemy engine, session factory, and one process-owned
-`BusinessOperationFingerprinter`, instruments the engine when configured, and stores all three in
-immutable `ApplicationResources`. The fingerprinter is constructed from the required typed secret
-and positive key version without retaining canonical operation payloads. Settings and resources
-are attached to application state for dependencies. Shutdown removes that state and disposes the
-engine.
+Application lifespan creates the async SQLAlchemy engine, session factory, one process-owned
+`BusinessOperationFingerprinter`, and one process-owned RS256 service-token signer. It instruments
+the engine when configured and stores the resources in immutable `ApplicationResources`. Signer
+construction reads and validates the configured PEM private key once, before requests are served.
+Settings and resources are attached to application state for dependencies. Shutdown removes that
+state and disposes the engine.
 
 Creating the engine does not itself prove a PostgreSQL connection. A route opens a request session
-only when it declares the database dependency; the pristine root and OpenAPI routes do not.
+only when it declares the database dependency; the root and OpenAPI routes do not.
 
 ## Request flow
 
@@ -46,21 +46,25 @@ create_app
 4. The handler coordinates repositories or read-query adapters. Adapters execute SQLAlchemy
    statements through the injected request session and let exceptions propagate to the API
    boundary.
-5. The route converts the application result into a typed API response and returns the
+5. An application route converts the result into a typed API response and returns the
    `ApplicationResponse` envelope documented in `docs/api/application-response.md`. FastAPI
    validates and
    serializes the declared response model.
 
-The two pristine endpoints stop at the route: they have no application handler, repository, query
-adapter, or database dependency.
+The root and OpenAPI publication endpoints stop at the route: they have no application handler,
+repository, query adapter, or database dependency. The OAuth2 token route instead opens a database
+transaction, invokes the client-credentials handler, and returns its typed token result inside
+`ApplicationResponse` with no-store headers.
 
 ## Safe error path
 
-Registered handlers convert validation, application, HTTP, and SQLAlchemy failures into the
-documented safe envelopes. If another exception escapes, request middleware records it with the
-request and correlation identifiers and returns the generic internal failure. The response still
-receives both context headers, while tracebacks and secrets stay out of the public body. See
-`docs/api/errors.md` for the exact mappings.
+Registered handlers convert validation, application, HTTP, and SQLAlchemy failures into documented
+safe envelopes. They recognize the exact OAuth2 token path only to select its stable
+`AUTHSERVICE_*` classification, status, cache headers, and optional Basic challenge; serialization
+still uses the central `ApplicationResponse[None]` helper. If another exception escapes, request
+middleware records it with the request and correlation identifiers and selects the same
+path-specific safe envelope. The response still receives both context headers, while tracebacks
+and secrets stay out of the public body. See `docs/api/errors.md` for the exact mappings.
 
 Transaction completion and database error ownership are defined in
 `docs/architecture/persistence-and-transactions.md`.

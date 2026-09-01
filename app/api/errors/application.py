@@ -14,7 +14,9 @@ from application.errors import (
     InvalidOperationError,
     NotFoundError,
 )
+from application.oauth2 import OAuth2ErrorCode
 
+from .oauth2 import is_oauth_token_request, oauth2_error_response
 from .response import error_response
 
 
@@ -22,6 +24,14 @@ async def handle_application_error(request: Request, exception: Exception) -> JS
     """Map a semantic application failure without exposing internal state."""
     if not isinstance(exception, ApplicationError):
         raise TypeError("Unexpected exception registered as ApplicationError")
+    if is_oauth_token_request(request):
+        logfire.error(
+            "OAuth2 token application operation failed",
+            request_id=request_id_from_state(request),
+            correlation_id=correlation_id_from_state(request),
+            _exc_info=exception,
+        )
+        return oauth2_error_response(OAuth2ErrorCode.SERVER_ERROR)
     if isinstance(exception, NotFoundError):
         status_code = status.HTTP_404_NOT_FOUND
     elif isinstance(exception, ConflictError):

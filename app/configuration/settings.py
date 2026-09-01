@@ -15,7 +15,9 @@ from .application import ApplicationSettings
 from .business_operation_fingerprint import BusinessOperationFingerprintSettings
 from .database import DatabaseSettings
 from .http import HTTPSettings
+from .jwt import JWTSettings
 from .logfire import LogfireSettings
+from .oauth2 import OAuth2Settings
 
 
 class Settings(BaseSettings):
@@ -45,7 +47,9 @@ class Settings(BaseSettings):
     )
     database: DatabaseSettings
     http: HTTPSettings = Field(default_factory=HTTPSettings)
+    jwt: JWTSettings
     logfire: LogfireSettings = Field(default_factory=LogfireSettings)
+    oauth2: OAuth2Settings
 
     @model_validator(mode="after")
     def validate_service_requirements(self) -> Self:

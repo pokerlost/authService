@@ -16,11 +16,15 @@ response model.
 
 ## Responses and errors
 
-Every operation returns the four-field `ApplicationResponse` envelope documented in
-`docs/api/application-response.md`.
-The envelope distinguishes success from failure while keeping the successful result strongly
-typed. Central exception handlers convert the supported failure categories into safe public
-responses described in `docs/api/errors.md`.
+PokerLost application operations return the four-field `ApplicationResponse` envelope documented
+in `docs/api/application-response.md`. The envelope distinguishes success from failure while
+keeping the successful result strongly typed. Central exception handlers convert the supported
+failure categories into safe public responses described in `docs/api/errors.md`.
+
+`POST /oauth.token` is a narrow request-shape exception: it accepts a form and HTTP Basic client
+authentication instead of an application JSON request. Its success and handled failures still use
+`ApplicationResponse`, and validation never exposes FastAPI's `detail` shape. Token responses also
+carry the required no-store headers.
 
 ## OpenAPI and generated clients
 
@@ -31,6 +35,4 @@ input to the authoritative `pypokerlost` method generator; PokerLost inter-servi
 generated methods and SDK client rather than a service-owned HTTP transport. See
 `docs/api/openapi-and-sdk.md` for the publication and client boundary.
 
-The current endpoint inventory is maintained in `docs/api/public-surface.md`. A concrete service
-updates that manifest and the
-relevant canonical contract page whenever its API changes.
+The current endpoint inventory is maintained in `docs/api/public-surface.md`.

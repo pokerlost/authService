@@ -1,9 +1,10 @@
 # Quickstart
 
-This page starts the generated service locally and exercises its two pristine HTTP endpoints.
+This page starts authService locally, exercises its base endpoints, and identifies the service-client
+bootstrap and token boundaries.
 
-Complete `docs/getting-started/installation.md`, provide valid required configuration in `.env`,
-and start the development server:
+Complete `docs/getting-started/installation.md`, provide valid required configuration and an RSA
+private key at the configured path, and start the development server:
 
 ```bash
 make run
@@ -63,5 +64,18 @@ The response uses the same four-field envelope. Its `result` is the complete Fas
 ```
 
 The displayed `result` focuses on stable metadata; the actual object also contains the generated
-`paths` and schemas. See `docs/api/openapi-and-sdk.md` for publication rules and
-`docs/api/public-surface.md` for the exact base endpoints.
+`paths` and schemas, including the OAuth2 form and HTTP Basic contract at `/oauth.token`. See
+`docs/api/openapi-and-sdk.md` for publication rules and
+`docs/api/public-surface.md` for the exact current endpoint inventory.
+
+## Service-client flow
+
+Before requesting a service token, an operator runs `authservice bootstrap-service-client` with
+exact scopes and resources against the configured PostgreSQL database. The command emits the raw
+client secret once after commit; it must be transferred through an operator-approved secret
+channel because authService cannot recover it from the persisted digest.
+
+The client then submits HTTP Basic credentials and an `application/x-www-form-urlencoded` request
+to `POST /oauth.token`. The response uses `ApplicationResponse`; a successful access token appears
+only at `result.access_token`. See `docs/architecture/service-client-credentials.md` for
+authorization and credential rules and `docs/api/public-surface.md` for the exact wire contract.

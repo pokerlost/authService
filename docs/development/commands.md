@@ -69,6 +69,25 @@ env PYTHONPATH=app uv run --locked gunicorn "api.application:create_app()" \
 
 The Makefile variables `HTTP_HOST`, `HTTP_PORT`, `GUNICORN_WORKERS`, `GUNICORN_TIMEOUT`, `GUNICORN_GRACEFUL_TIMEOUT`, `GUNICORN_KEEPALIVE`, and `GUNICORN_FORWARDED_ALLOW_IPS` override these defaults.
 
+## Operator commands
+
+The installed `authservice` Typer application retains `run` and adds the service-owned
+`bootstrap-service-client` command. A typical bootstrap invocation is:
+
+```bash
+authservice bootstrap-service-client \
+  --service-slug accountsservice \
+  --scope auth.internal.provision_human \
+  --scope auth.internal.set_principal_status \
+  --scope auth.internal.assign_role \
+  --scope auth.internal.issue_login_grant \
+  --resource urn:pokerlost:service:authService
+```
+
+At least one `--scope` and one `--resource` are required; `--client-id` optionally supplies a
+canonical UUID. This command is intentionally not wrapped by a Make target. Its transaction and
+one-time secret behavior are documented in `docs/architecture/service-client-credentials.md`.
+
 ## Source and documentation checks
 
 | Target | Direct command |

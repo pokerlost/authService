@@ -4,4 +4,6 @@ from __future__ import annotations
 
 from api.schemas.base import RequestModel
 
-__all__ = ("RequestModel",)
+from .oauth_token_request import OAuthTokenRequest
+
+__all__ = ("OAuthTokenRequest", "RequestModel")

@@ -1,7 +1,7 @@
 # ApplicationResponse
 
-This page defines the universal four-field response envelope used by every public operation in
-`authService`.
+This page defines the four-field response envelope used by every public operation in authService,
+including the OAuth2 token operation.
 
 ## Success
 
@@ -47,9 +47,34 @@ The error code is stable machine-readable metadata; the message is safe for a ca
 The public model is strict, immutable, and closed to extra fields. The wire envelope has exactly
 these four properties; do not extend it with transport or observability metadata.
 
+## OAuth2 token result
+
+`POST /oauth.token` preserves `application/x-www-form-urlencoded` and HTTP Basic request
+mechanics, but its response is not an envelope exception. A successful service-token response is:
+
+```json
+{
+  "ok": true,
+  "result": {
+    "access_token": "<secret>",
+    "token_type": "bearer",
+    "expires_in": 600,
+    "scope": "auth.internal.issue_login_grant auth.internal.provision_human"
+  },
+  "error": null,
+  "error_message": null
+}
+```
+
+The access token exists only at `result.access_token`. A handled token failure uses the same
+four-field `ApplicationResponse[None]` shape as every other operation, never a token-specific error
+object or FastAPI validation details. Token success and failure responses retain the cache-control
+and authentication headers documented in `docs/api/errors.md`.
+
 ## SDK behavior
 
-The `pypokerlost` client interprets the envelope and HTTP status together:
+The `pypokerlost` client, including `ClientCredentialsTokenProvider`, interprets the envelope and
+HTTP status together:
 
 - a valid failed envelope raises `PokerlostAPIError`, including for a non-2xx response;
 - a successful envelope returned with a non-2xx status raises `PokerlostProtocolError`;

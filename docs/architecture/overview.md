@@ -17,6 +17,9 @@ api/application composition
 
 configuration and observability
 -> infrastructure concerns
+
+application
+-> security and persistence ports
 ```
 
 `api` owns FastAPI transport and composition. It translates public schemas into application values
@@ -27,7 +30,9 @@ orchestration and builds its typed command, query, and result values on the fram
 Composition code supplies concrete persistence adapters where an operation needs them. Application
 behavior does not import FastAPI, and domain values do not depend on transport, settings,
 observability, or SQLAlchemy. Configuration and observability support the runtime as infrastructure
-concerns; they do not own service use cases.
+concerns; they do not own service use cases. The service-owned `security` package implements the
+client-secret processing and RS256 signing boundaries without leaking PyJWT or PEM handling into
+the application or domain layers.
 
 ## Layer responsibilities
 
@@ -37,6 +42,7 @@ concerns; they do not own service use cases.
 | `application` | Commands, queries, results, handler contracts, and concrete use-case orchestration. |
 | `domain` | Framework-independent internal values and closed domain or platform categories. |
 | `persistence` | SQLAlchemy metadata, sessions, repositories, result readers, projections, and concrete adapters. |
+| `security` | OAuth client-secret generation and verification plus the PyJWT-backed RS256 signer. |
 | `configuration` | Typed settings, environment loading, and startup validation. |
 | `observability` | Privacy-safe Logfire configuration and FastAPI/SQLAlchemy instrumentation. |
 | `cli` | Operator entry points such as local application startup. |
@@ -52,6 +58,12 @@ than sharing one model across layers.
 wire surface is documented separately in `docs/api/overview.md`, and the shared idempotency
 primitive is documented in `docs/architecture/business-operation-fingerprinting.md`.
 
-The current checkout contains authorization domain and persistence foundations but no public
-business operations or concrete application handlers. `SERVICE.md` defines the service
-responsibilities that future operations must implement.
+The current checkout adds the service-client credential foundation, a transactional operator
+bootstrap command, and `POST /oauth.token` on top of the authorization domain and persistence
+foundation. The detailed responsibility split and authorization rules are documented in
+`docs/architecture/service-client-credentials.md`.
+
+Consumer services use the `pypokerlost` authentication and outbound middleware pipeline described
+in `docs/api/openapi-and-sdk.md`. That client lifecycle remains consumer-owned. authService does not
+instantiate an outbound client to itself or accountsService for credential validation, token
+issuance, login-grant exchange, refresh, or JWT signing.

@@ -1,6 +1,7 @@
 # authService documentation
 
-This documentation describes the generated PokerLost FastAPI service foundation and its verified development workflows.
+This documentation describes the current authService OAuth2 surface, service-client foundation,
+architecture, and verified development workflows.
 
 ## Getting started
 
@@ -22,6 +23,7 @@ This documentation describes the generated PokerLost FastAPI service foundation 
 - `docs/architecture/overview.md` — architecture overview.
 - `docs/architecture/request-lifecycle.md` — request lifecycle.
 - `docs/architecture/persistence-and-transactions.md` — persistence and transactions.
+- `docs/architecture/service-client-credentials.md` — service client credentials.
 - `docs/architecture/business-operation-fingerprinting.md` — idempotency fingerprinting.
 
 ## Development

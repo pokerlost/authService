@@ -1,7 +1,7 @@
 # Installation
 
-This page prepares a local checkout of `authService` with its locked Python 3.14 environment
-and required configuration.
+This page prepares a local checkout of `authService` with its locked Python 3.14 environment,
+PostgreSQL access, and required signing configuration.
 
 ## Prerequisites
 
@@ -28,7 +28,11 @@ uv lock
 uv sync --locked
 ```
 
-Replace the local placeholders in `.env` without committing credentials. The first `uv lock` resolves the pinned private SDK source and writes `uv.lock`; subsequent installs use `uv sync --locked` so the environment cannot silently drift from that lock.
+Replace the local placeholders in `.env` without committing credentials. Configure
+`AUTHSERVICE_JWT__PRIVATE_KEY_PATH` to an operator-controlled RSA private-key file outside the
+repository; application startup requires a valid RSA key of at least 2048 bits. The first
+`uv lock` resolves the pinned private SDK source and writes `uv.lock`; subsequent installs use
+`uv sync --locked` so the environment cannot silently drift from that lock.
 
 See `docs/getting-started/configuration.md` for the environment variable contract and
 `docs/development/commands.md` for the Makefile wrappers.

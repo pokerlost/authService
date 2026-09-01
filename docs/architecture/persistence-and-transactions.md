@@ -26,9 +26,31 @@ Repositories and query adapters receive the request session and execute explicit
 statements. They do not create engines or sessions and do not complete the transaction. ORM
 entities, persistence projections, and public API response models remain separate artifacts.
 
-The pristine template supplies metadata, repository, result-reader, and projection foundations but
-no concrete table or business repository. Concrete adapters are added only for responsibilities
-defined in `SERVICE.md`.
+The shared template supplies metadata, repository, result-reader, and projection foundations.
+authService adds concrete authorization and OAuth client models only for responsibilities defined
+in `SERVICE.md`.
+
+AUTH-02 persists OAuth clients, grant-type permissions, digest-only client credentials, direct
+service and client scope grants, and direct service and client audience grants. The audience value
+is the exact canonical resource URI; scope and audience tables contain no wildcard or implicit
+role-derived machine grant.
+
+The concrete tables are `oauth_clients`, `oauth_client_grant_types`, `oauth_client_secrets`,
+`service_scope_grants`, `oauth_client_scope_grants`, `service_audience_grants`, and
+`oauth_client_audience_grants`. Their foreign keys retain the existing authorization principal and
+scope catalog as explicit security dependencies rather than broad delete cascades.
+
+## Service-client transaction boundaries
+
+`authservice bootstrap-service-client` opens one local session transaction for the service
+principal, bound confidential client, grant type, both scope-grant sets, both audience-grant sets,
+and active secret digest. A conflict or validation failure rolls the entire bundle back. The CLI
+prints the one-time raw secret only after the context exits successfully and commits.
+
+`POST /oauth.token` uses one request-owned transaction for authorization reads. Its query adapter
+returns an immutable issuance context rather than ORM entities. The application handler evaluates
+the accepted credential records and exact grant intersections, then signs through the
+process-owned signer. It does not write or persist the access token.
 
 ## Remote calls
 
@@ -36,6 +58,12 @@ Do not hold a PostgreSQL transaction open across a remote `pypokerlost` SDK call
 call and a local database transaction cannot form one atomic transaction. Structure the application
 workflow so remote I/O and a short local persistence phase have explicit ordering and failure
 semantics, without treating either side as a distributed commit participant.
+
+The boundary also excludes service-token acquisition, every retry attempt, and every backoff
+sleep. Retry is transport recovery, not business reconciliation. A replay-safe mutation must reuse
+the same `business_operation_id` and semantic payload against a persisted target idempotency
+contract; an ambiguous remote result still requires the owning workflow's reconciliation policy.
+authService's current token issuance performs no outbound call.
 
 ## Failure mapping
 

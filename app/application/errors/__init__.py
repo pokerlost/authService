@@ -10,6 +10,7 @@ from .invalid_principal_binding import InvalidPrincipalBindingError
 from .invalid_principal_role import InvalidPrincipalRoleError
 from .invalid_scope_name import InvalidScopeNameError
 from .not_found import NotFoundError
+from .oauth_client_conflict import OAuthClientConflictError
 from .principal_conflict import PrincipalConflictError
 from .role_not_found import RoleNotFoundError
 from .scope_not_found import ScopeNotFoundError
@@ -23,6 +24,7 @@ __all__ = (
     "InvalidPrincipalRoleError",
     "InvalidScopeNameError",
     "NotFoundError",
+    "OAuthClientConflictError",
     "PrincipalConflictError",
     "RoleNotFoundError",
     "ScopeNotFoundError",

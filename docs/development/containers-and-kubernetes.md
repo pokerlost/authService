@@ -41,4 +41,16 @@ fingerprint secret use `secretEnvironment` references to existing Kubernetes Sec
 keys. Never place secret values in `environment`, a ConfigMap`, a committed values file, or
 rendered documentation.
 
-The chart also disables service-account token mounting, requests a non-root runtime, uses a read-only root filesystem, drops Linux capabilities, and mounts a bounded writable temporary volume. Review rendered output and environment-specific Secret references before deployment; successful linting and rendering do not prove cluster readiness or application correctness.
+The service-owned `oauth2` values supply the exact issuer and access-token TTL. The focused
+`jwtSigningKey` values supply the non-secret key ID, mounted path, existing Secret name, and Secret
+data key. The ConfigMap receives only issuer, TTL, key ID, and path. The Deployment projects only
+the selected private-key entry and mounts it as one read-only file at the same path published as
+`AUTHSERVICE_JWT__PRIVATE_KEY_PATH`; the PEM content never enters the ConfigMap, environment, image,
+or chart values. The default file mode and pod `fsGroup` keep the mount readable by the non-root
+service process.
+
+The chart also disables service-account token mounting, requests a non-root runtime, uses a
+read-only root filesystem, drops Linux capabilities, and mounts a bounded writable temporary
+volume. Both probes remain `GET /`; the private-key mount does not change their purpose. Review
+rendered output and environment-specific Secret references before deployment; successful linting
+and rendering do not prove cluster readiness or application correctness.

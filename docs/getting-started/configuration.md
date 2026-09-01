@@ -1,6 +1,6 @@
 # Configuration
 
-This page documents the generated service settings groups and their environment variable mapping.
+This page documents the service settings groups and their environment variable mapping.
 
 `Settings` loads `.env` and process environment values with the `AUTHSERVICE_` prefix.
 Nested fields use a double underscore, so the general form is:
@@ -44,6 +44,29 @@ Production configuration fails at startup unless Logfire and remote delivery are
 | `host` | `AUTHSERVICE_HTTP__HOST` | Local HTTP bind address. |
 | `port` | `AUTHSERVICE_HTTP__PORT` | Local HTTP port from `1` through `65535`. |
 
+## `oauth2`
+
+| Field | Environment variable | Purpose |
+| --- | --- | --- |
+| `issuer` | `AUTHSERVICE_OAUTH2__ISSUER` | Required exact, non-empty service-token issuer. |
+| `access_token_ttl_seconds` | `AUTHSERVICE_OAUTH2__ACCESS_TOKEN_TTL_SECONDS` | Service access-token lifetime from `60` through `3600` seconds. |
+
+The example TTL is `600` seconds. The issuer is copied exactly into the JWT `iss` claim and is not
+silently normalized.
+
+## `jwt`
+
+| Field | Environment variable | Purpose |
+| --- | --- | --- |
+| `private_key_path` | `AUTHSERVICE_JWT__PRIVATE_KEY_PATH` | Required filesystem path to the mounted PEM private key. |
+| `key_id` | `AUTHSERVICE_JWT__KEY_ID` | Required JWT `kid` containing only safe ASCII token characters. |
+
+`key_id` is between one and 128 characters and uses only ASCII letters, digits, `.`, `_`, and `-`.
+The path is configuration, not key material. Settings parsing does not read the file; application
+lifespan loads it once while constructing the signer and fails startup when it is missing, is not a
+PEM RSA private key, or uses an RSA key smaller than 2048 bits. The RS256 algorithm is a code
+invariant and is not configurable.
+
 ## `database`
 
 | Field | Environment variable | Purpose |
@@ -82,6 +105,7 @@ key until every retained idempotency record created with the old key has expired
 The persisted digest and key version remain together, and a candidate with another version is a
 conflict. Removing an old secret does not preserve replay comparison for records created with it.
 
-Keep the fingerprint secret, Logfire token, and database URL outside source control. Kubernetes
-supplies them through Secret references rather than the chart ConfigMap; see
+Keep the signing private key, fingerprint secret, Logfire token, and database URL outside source
+control. Kubernetes mounts the private key from a Secret and supplies the other values through
+Secret references rather than the chart ConfigMap; see
 `docs/development/containers-and-kubernetes.md`.
