@@ -16,6 +16,13 @@ construction reads and validates the configured PEM private key once, before req
 Settings and resources are attached to application state for dependencies. Shutdown removes that
 state and disposes the engine.
 
+A concrete service with a real outbound target extends this same lifespan rather than adding a
+second resource framework. It creates and starts one target-specific `pypokerlost.Client` before
+publishing `ApplicationResources`, stores it in an explicitly named typed field, reuses it across
+requests, and stops it in reverse ownership order. Partial startup failure unwinds resources that
+already started. authService has no outbound target and therefore creates no outbound client,
+token-acquisition port, token store or cache, target settings, or service-specific retry settings.
+
 Creating the engine does not itself prove a PostgreSQL connection. A route opens a request session
 only when it declares the database dependency; the root and OpenAPI routes do not.
 
@@ -55,6 +62,13 @@ The root and OpenAPI publication endpoints stop at the route: they have no appli
 repository, query adapter, or database dependency. The OAuth2 token route instead opens a database
 transaction, invokes the client-credentials handler, and returns its typed token result inside
 `ApplicationResponse` with no-store headers.
+
+When an application workflow makes an outbound call, it depends on a service-owned application
+port whose adapter resolves the named lifespan-owned client. Token orchestration remains in that
+service, while transport retry is enabled only by
+`RequestOptions(retry=PokerLostRetryPolicy())`. A request-owned database transaction must end
+before token acquisition, the remote call, or backoff. See
+`docs/architecture/inter-service-clients.md` for the complete pattern.
 
 ## Safe error path
 

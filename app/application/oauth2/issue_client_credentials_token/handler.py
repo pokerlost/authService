@@ -6,23 +6,26 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from pydantic import SecretStr
+from pypokerlost.contracts.authorization import (
+    AccessTokenClaims,
+    AuthorizationRole,
+    PrincipalStatus,
+    PrincipalType,
+)
+from pypokerlost.types import format_oauth_scope_string
 
-from application import Handler
 from application.oauth2 import OAuth2ErrorCode, OAuth2TokenError
 from application.ports import (
     ClientCredentialsAuthorizationContext,
     ClientCredentialsQuery,
+    Handler,
     OAuthClientSecretProcessor,
-    ServiceAccessTokenClaims,
     ServiceAccessTokenSigner,
 )
 from domain.enums import (
     OAuthClientStatus,
     OAuthClientType,
     OAuthGrantType,
-    PrincipalStatus,
-    PrincipalType,
-    RoleCode,
 )
 
 from .command import IssueClientCredentialsTokenCommand
@@ -62,7 +65,7 @@ class IssueClientCredentialsTokenHandler(
         self._issuer = issuer
         self._access_token_ttl_seconds = access_token_ttl_seconds
 
-    async def execute(
+    async def __call__(
         self,
         input_: IssueClientCredentialsTokenCommand,
         /,
@@ -95,21 +98,22 @@ class IssueClientCredentialsTokenHandler(
         ):
             raise OAuth2TokenError(OAuth2ErrorCode.INVALID_TARGET)
 
-        scope = " ".join(sorted(scope_name.value for scope_name in requested_scopes))
+        scope = format_oauth_scope_string(requested_scopes)
         expires_at = now + timedelta(seconds=self._access_token_ttl_seconds)
         token = self._signer.sign(
-            ServiceAccessTokenClaims(
+            AccessTokenClaims(
                 issuer=self._issuer,
                 subject=principal_id,
-                audience=input_.resource,
+                audience=input_.resource.value,
                 issued_at=now,
                 not_before=now,
                 expires_at=expires_at,
                 token_id=uuid4(),
+                token_use="access",
                 client_id=context.client_id,
                 scope=scope,
                 principal_type=PrincipalType.SERVICE,
-                role=RoleCode.AUTO,
+                role=AuthorizationRole.AUTO,
                 service_slug=service_slug,
             ),
         )
@@ -149,7 +153,7 @@ class IssueClientCredentialsTokenHandler(
             or context.principal_id is None
             or context.bound_principal_id != context.principal_id
             or context.principal_type is not PrincipalType.SERVICE
-            or context.principal_role is not RoleCode.AUTO
+            or context.principal_role is not AuthorizationRole.AUTO
             or context.principal_status is not PrincipalStatus.ACTIVE
             or context.service_slug is None
             or not context.service_slug.strip()

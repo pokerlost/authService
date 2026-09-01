@@ -59,7 +59,7 @@ mechanics, but its response is not an envelope exception. A successful service-t
     "access_token": "<secret>",
     "token_type": "bearer",
     "expires_in": 600,
-    "scope": "auth.internal.issue_login_grant auth.internal.provision_human"
+    "scope": "auth.internal.issueLoginGrant auth.internal.provisionHuman"
   },
   "error": null,
   "error_message": null
@@ -71,10 +71,15 @@ four-field `ApplicationResponse[None]` shape as every other operation, never a t
 object or FastAPI validation details. Token success and failure responses retain the cache-control
 and authentication headers documented in `docs/api/errors.md`.
 
+There is no raw OAuth2 token response, token-specific error envelope, `error_description`, or
+FastAPI `detail` body for handled token errors. The generated `oauth.token` method decodes the
+result into the shared `pypokerlost.contracts.authorization.OAuthTokenResponse`. A consuming
+service decides when to call that method and owns any credential, token storage, or refresh
+orchestration behind its application port and adapter.
+
 ## SDK behavior
 
-The `pypokerlost` client, including `ClientCredentialsTokenProvider`, interprets the envelope and
-HTTP status together:
+The `pypokerlost` client interprets the envelope and HTTP status together:
 
 - a valid failed envelope raises `PokerlostAPIError`, including for a non-2xx response;
 - a successful envelope returned with a non-2xx status raises `PokerlostProtocolError`;

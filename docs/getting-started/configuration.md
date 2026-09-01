@@ -100,8 +100,8 @@ The secret must contain at least 32 UTF-8 bytes. authService calls `require_secr
 `Settings` validation, so a missing or short secret fails startup. Kubernetes supplies the secret
 only through a Secret reference; the key version belongs in the ConfigMap.
 
-The first-version rotation policy is intentionally simple: do not rotate the active fingerprint
-key until every retained idempotency record created with the old key has expired or been deleted.
+The active-key rotation policy is intentionally simple: do not rotate the fingerprint key until
+every retained idempotency record created with the old key has expired or been deleted.
 The persisted digest and key version remain together, and a candidate with another version is a
 conflict. Removing an old secret does not preserve replay comparison for records created with it.
 
@@ -109,3 +109,16 @@ Keep the signing private key, fingerprint secret, Logfire token, and database UR
 control. Kubernetes mounts the private key from a Secret and supplies the other values through
 Secret references rather than the chart ConfigMap; see
 `docs/development/containers-and-kubernetes.md`.
+
+## Concrete outbound targets
+
+The pristine service has no outbound target settings, credentials, token storage, or retry
+configuration. When `SERVICE.md` declares a real target, add one focused immutable settings group
+named for that target and one explicitly named field on root `Settings`. A target base URL and
+request timeout are deployment configuration. Token credentials, storage, refresh, requested exact
+scopes, and audience remain service-owned and are added only when the implemented use case needs
+them.
+
+Do not expose `PokerLostRetryPolicy` values as settings; its transport algorithm is fixed by the
+SDK. Do not automatically add authService configuration to every service. The complete ownership
+pattern is in `docs/architecture/inter-service-clients.md`.

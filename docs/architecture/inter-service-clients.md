@@ -1,0 +1,203 @@
+# Inter-service clients
+
+This page defines the extension pattern for a concrete `authService` service with a real
+outbound PokerLost target declared by `SERVICE.md`. The pristine generated service has no target,
+so it creates no client, credentials, token port, token storage, or retry configuration.
+
+## Ownership boundary
+
+The SDK and consuming service own different responsibilities:
+
+| Concern | Owner |
+| --- | --- |
+| HTTP transport, target description, request construction, serialization, generated methods, response decoding, and canonical exceptions | `pypokerlost` |
+| Shared OAuth scope, token response, access-token claims, authorization context, and cross-service authorization enums | `pypokerlost` |
+| Connection, timeout, retryable HTTP classification, full-jitter backoff, and `Retry-After` execution | `pypokerlost.PokerLostRetryPolicy` |
+| Credentials, requested scopes, audience, token acquisition timing, storage, refresh, and invalidation | The consuming service |
+| Business replay safety, operation fingerprint, workflow state, and reconciliation | The consuming service and target operation contract |
+
+`pypokerlost` knows the `oauth.token` wire shape and can call its generated method. It does not
+decide whether this service needs a token or manage the token lifecycle.
+
+## Application port and adapter
+
+When the implemented service stage needs a service token, keep this dependency direction:
+
+```text
+application use case
+-> service-owned application port
+-> service-owned pypokerlost adapter
+-> generated oauth.token method
+-> optional service-owned token store
+```
+
+The port belongs under the concrete service's `application/ports` package and describes the
+application capability rather than HTTP mechanics. For example:
+
+```python
+"""Feature-specific outbound authorization port."""
+
+from __future__ import annotations
+
+from typing import Protocol
+
+from pypokerlost.contracts.authorization import OAuthTokenResponse
+from pypokerlost.types import OAuthScope
+
+
+class AuthServiceTokenIssuer(Protocol):
+    """Issue one token for the scopes selected by this service."""
+
+    async def issue(
+        self,
+        *,
+        scopes: frozenset[OAuthScope],
+        audience: str,
+    ) -> OAuthTokenResponse:
+        """Return the decoded shared token response."""
+        ...
+```
+
+The concrete adapter owns the generated `oauth.token` method call and supplies confidential-client
+authentication through generic immutable request headers. It may depend on service-owned
+credential settings or a secret provider, but the port, handler, and domain do not expose
+`httpx`, FastAPI objects, `RequestOptions`, or the concrete SDK `Client`.
+
+Do not add this example port to a pristine service. Add a feature-specific port only when a
+concrete handler uses it. Do not add a generic transport port, client registry, or service locator.
+
+## Shared authorization contracts
+
+Import project-wide wire and value contracts from the SDK:
+
+```python
+from pypokerlost.contracts.authorization import (
+    AccessTokenClaims,
+    AuthorizationContext,
+    AuthorizationRole,
+    OAuthTokenResponse,
+    OAuthTokenType,
+    PrincipalStatus,
+    PrincipalType,
+)
+from pypokerlost.types import OAuthScope
+```
+
+These strict immutable models contain data shape, validation, and deterministic conversion only.
+They do not acquire, cache, refresh, sign, verify, or revoke tokens and do not make authorization
+decisions. Persistence entities and authService-internal lifecycle categories remain local to
+authService.
+
+Project-owned OAuth scopes contain at least two dot-separated lowerCamelCase segments:
+
+```text
+accounts.self.read
+accounts.self.updateNickname
+auth.internal.provisionHuman
+auth.internal.issueLoginGrant
+```
+
+Underscores, hyphens, wildcards, whitespace, empty segments, and uppercase segment initials are
+invalid. Scopes and API operation IDs are separate contracts.
+
+## Target client lifecycle
+
+Create a target-specific client only for a real target declared by `SERVICE.md`. A focused settings
+group may contain that target's validated base URL and request timeout. Credential, scope, audience,
+and token-store settings remain service-owned and are added only when the implemented use case
+needs them.
+
+Create exactly one client in application lifespan, publish it through one explicitly named
+`ApplicationResources` field, reuse it across requests, and close it in reverse ownership order.
+The client has no bearer middleware or token provider:
+
+```python
+from pypokerlost import Client
+from pypokerlost.client.api_server import APIServer
+from pypokerlost.client.session import HttpxSession
+
+
+def create_auth_service_client(
+    *,
+    base_url: str,
+    request_timeout_seconds: int,
+) -> Client:
+    """Build one process-owned transport client for authService."""
+    api_server = APIServer.from_base(base_url)
+    return Client(
+        session=HttpxSession(
+            api_server=api_server,
+            timeout=request_timeout_seconds,
+        ),
+    )
+```
+
+Do not instantiate an authService client, credential settings, access-token store, background
+refresh task, target URL, or scope bundle in every generated service.
+
+## Generic headers and generated token method
+
+The service-owned adapter calls the generated `oauth.token` method through the ordinary client
+path. The generated method provides the operation ID, path, standard
+`application/x-www-form-urlencoded` request body, request model, and
+`ApplicationResponse[OAuthTokenResponse]` result type. The adapter supplies any required
+`Authorization` header through generic `RequestOptions` headers.
+
+Header handling remains transport-generic: names are protected against case-insensitive
+duplicates, values reject CR/LF injection, caller mappings cannot mutate shared state, and
+`Authorization`, `Cookie`, and `Proxy-Authorization` values are redacted from representations,
+logs, and errors. Do not add bearer-specific middleware or a handwritten token transport.
+
+The SDK performs no preliminary token request, stored-token lookup, refresh, or automatic retry
+after `401`. Token acquisition itself is an ordinary generated operation initiated by service
+code.
+
+## Canonical transport retry
+
+All PokerLost services use the same immutable policy:
+
+```python
+from pypokerlost.client.request import RequestOptions
+from pypokerlost.client.retry import PokerLostRetryPolicy
+
+options = RequestOptions(
+    retry=PokerLostRetryPolicy(),
+)
+```
+
+Retry is disabled when `RequestOptions.retry` is `None`. Do not add deployment settings for retry
+attempts, delays, status codes, multiplier, jitter, `Retry-After`, or total budget.
+
+The first policy version is fixed:
+
+| Property | Value |
+| --- | --- |
+| Maximum attempts | `3`, including the first attempt |
+| Initial delay | `0.2` seconds |
+| Maximum delay | `2.0` seconds |
+| Backoff multiplier | `2.0` |
+| Jitter | Full jitter |
+| Retryable statuses | `408`, `425`, `429`, `500`, `502`, `503`, `504` |
+| `Retry-After` | Delta-seconds and HTTP-date, within the remaining budget |
+| Total logical-call budget | `5.0` seconds |
+
+The policy retries canonical connection and timeout errors and the listed statuses. It does not
+retry `401`, `403`, `404`, `409`, `410`, `422`, local validation or serialization failures,
+ordinary non-retryable application failures, caller cancellation, or decode/protocol failures
+without a retryable status. After exhaustion the normal final SDK exception is preserved.
+
+An explicit policy does not make a mutation replay-safe. The application may opt in only when the
+target contract guarantees replay safety. Every attempt must reuse the same
+`business_operation_id`, semantic payload, and target operation. The SDK never creates or changes
+that identifier, idempotency key, fingerprint, or workflow state.
+
+## Transaction and privacy rules
+
+Do not keep a PostgreSQL transaction open during token acquisition, a target call, a
+`Retry-After` delay, jitter sleep, or another attempt. Complete short local persistence phases
+before remote I/O and use the existing workflow or reconciliation seam for ambiguous outcomes.
+
+Never log or expose client secrets, passwords, password hashes, private keys, access or refresh
+tokens, `Authorization` values, sensitive bodies, fingerprint inputs, or fingerprint digests.
+Canonical SDK exceptions and shared token models keep secret-bearing values out of representations
+and validation errors.

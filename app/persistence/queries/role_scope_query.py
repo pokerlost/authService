@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Collection
 
+from pypokerlost.contracts.authorization import AuthorizationRole, PrincipalType
+from pypokerlost.types import OAuthScope, parse_oauth_scope_string
 from sqlalchemy import select
 
 from application.errors import RoleNotFoundError, ScopeNotFoundError
 from application.ports import RoleScopeQuery
-from domain.authorization_role import AuthorizationRole
-from domain.enums import PrincipalType, RoleCode
-from domain.oauth_scope import OAuthScope
-from domain.scope_name import ScopeName
+from domain.authorization_role_definition import AuthorizationRoleDefinition
+from domain.oauth_scope_definition import OAuthScopeDefinition
 from persistence.database.models import (
     AuthorizationRoleModel,
     OAuthScopeModel,
@@ -23,12 +23,12 @@ from persistence.repositories import SQLAlchemyRepository
 class SQLAlchemyRoleScopeQuery(SQLAlchemyRepository, RoleScopeQuery):
     """Read exact persisted roles, scopes, and explicit grants."""
 
-    async def get_role_by_code(self, code: RoleCode) -> AuthorizationRole:
+    async def get_role_by_code(self, code: AuthorizationRole) -> AuthorizationRoleDefinition:
         """Return one persisted role by its exact stable code."""
         model = await self._get_role_model(code)
-        return AuthorizationRole(
+        return AuthorizationRoleDefinition(
             role_id=model.id,
-            code=RoleCode(model.code),
+            code=AuthorizationRole(model.code),
             principal_type=PrincipalType(model.principal_type),
             created_at=model.created_at,
             updated_at=model.updated_at,
@@ -36,10 +36,10 @@ class SQLAlchemyRoleScopeQuery(SQLAlchemyRepository, RoleScopeQuery):
 
     async def get_scopes_by_exact_names(
         self,
-        names: Collection[ScopeName],
-    ) -> tuple[OAuthScope, ...]:
+        names: Collection[OAuthScope],
+    ) -> tuple[OAuthScopeDefinition, ...]:
         """Return the exact requested catalog scopes or fail closed when one is absent."""
-        requested_names = frozenset(name.value for name in names)
+        requested_names = frozenset(names)
         if not requested_names:
             return ()
         result = await self._read_scalar(
@@ -52,15 +52,21 @@ class SQLAlchemyRoleScopeQuery(SQLAlchemyRepository, RoleScopeQuery):
             raise ScopeNotFoundError
         return tuple(self._scope_from_model(model) for model in models)
 
-    async def resolve_allowed_scope_names(self, role: RoleCode) -> frozenset[ScopeName]:
+    async def resolve_allowed_scope_names(
+        self,
+        role: AuthorizationRole,
+    ) -> frozenset[OAuthScope]:
         """Resolve all explicit grant rows for the exact persisted role."""
         return await self._resolve_scope_names(role, default_only=False)
 
-    async def resolve_default_scope_names(self, role: RoleCode) -> frozenset[ScopeName]:
+    async def resolve_default_scope_names(
+        self,
+        role: AuthorizationRole,
+    ) -> frozenset[OAuthScope]:
         """Resolve only explicit default grant rows for the exact persisted role."""
         return await self._resolve_scope_names(role, default_only=True)
 
-    async def _get_role_model(self, code: RoleCode) -> AuthorizationRoleModel:
+    async def _get_role_model(self, code: AuthorizationRole) -> AuthorizationRoleModel:
         result = await self._read_scalar(
             select(AuthorizationRoleModel).where(AuthorizationRoleModel.code == code.value),
         )
@@ -71,10 +77,10 @@ class SQLAlchemyRoleScopeQuery(SQLAlchemyRepository, RoleScopeQuery):
 
     async def _resolve_scope_names(
         self,
-        role: RoleCode,
+        role: AuthorizationRole,
         *,
         default_only: bool,
-    ) -> frozenset[ScopeName]:
+    ) -> frozenset[OAuthScope]:
         role_model = await self._get_role_model(role)
         statement = (
             select(OAuthScopeModel.name)
@@ -87,13 +93,17 @@ class SQLAlchemyRoleScopeQuery(SQLAlchemyRepository, RoleScopeQuery):
         if default_only:
             statement = statement.where(RoleScopeGrantModel.is_default.is_(True))
         result = await self._read_scalar(statement)
-        return frozenset(ScopeName.parse(name) for name in result.all())
+        names = result.all()
+        if not names:
+            return frozenset()
+        return frozenset(parse_oauth_scope_string(" ".join(names)))
 
     @staticmethod
-    def _scope_from_model(model: OAuthScopeModel) -> OAuthScope:
-        return OAuthScope(
+    def _scope_from_model(model: OAuthScopeModel) -> OAuthScopeDefinition:
+        (name,) = parse_oauth_scope_string(model.name)
+        return OAuthScopeDefinition(
             scope_id=model.id,
-            name=ScopeName.parse(model.name),
+            name=name,
             description=model.description,
             created_at=model.created_at,
             updated_at=model.updated_at,

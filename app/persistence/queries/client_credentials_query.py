@@ -5,6 +5,12 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
+from pypokerlost.contracts.authorization import (
+    AuthorizationRole,
+    PrincipalStatus,
+    PrincipalType,
+)
+from pypokerlost.types import OAuthScope, parse_oauth_scope_string
 from sqlalchemy import and_, func, literal, select
 from sqlalchemy import cast as sql_cast
 from sqlalchemy.dialects.postgresql import JSONB, aggregate_order_by
@@ -17,13 +23,9 @@ from domain.enums import (
     OAuthClientStatus,
     OAuthClientType,
     OAuthGrantType,
-    PrincipalStatus,
-    PrincipalType,
-    RoleCode,
 )
 from domain.oauth_client_credential import OAuthClientCredential
 from domain.resource_indicator import ResourceIndicator
-from domain.scope_name import ScopeName
 from persistence.database.models import (
     AuthorizationPrincipalModel,
     AuthorizationRoleModel,
@@ -205,15 +207,15 @@ class SQLAlchemyClientCredentialsQuery(SQLAlchemyRepository, ClientCredentialsQu
             principal_type=(
                 PrincipalType(principal.principal_type) if principal is not None else None
             ),
-            principal_role=RoleCode(role_code) if role_code is not None else None,
+            principal_role=AuthorizationRole(role_code) if role_code is not None else None,
             principal_status=(PrincipalStatus(principal.status) if principal is not None else None),
             service_slug=principal.service_slug if principal is not None else None,
             credentials=tuple(
                 _credential_from_json(item) for item in cast(list[dict[str, Any]], row[3])
             ),
             grant_types=frozenset(OAuthGrantType(value) for value in cast(list[str], row[4])),
-            service_scopes=frozenset(ScopeName.parse(value) for value in cast(list[str], row[5])),
-            client_scopes=frozenset(ScopeName.parse(value) for value in cast(list[str], row[6])),
+            service_scopes=_parse_scope_values(cast(list[str], row[5])),
+            client_scopes=_parse_scope_values(cast(list[str], row[6])),
             service_audiences=frozenset(
                 ResourceIndicator.parse(value) for value in cast(list[str], row[7])
             ),
@@ -231,3 +233,10 @@ def _credential_from_json(value: dict[str, Any]) -> OAuthClientCredential:
     return OAuthClientCredential.model_validate(
         value | {"secret_digest": bytes.fromhex(secret_digest)},
     )
+
+
+def _parse_scope_values(values: list[str]) -> frozenset[OAuthScope]:
+    """Validate persisted scope identifiers through the shared canonical parser."""
+    if not values:
+        return frozenset()
+    return frozenset(parse_oauth_scope_string(" ".join(values)))

@@ -8,8 +8,12 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, model_validator
 from pydantic_core import PydanticCustomError
+from pypokerlost.contracts.authorization import (
+    AuthorizationRole,
+    PrincipalStatus,
+    PrincipalType,
+)
 
-from domain.enums import PrincipalStatus, PrincipalType, RoleCode
 from domain.value_model import ValueModel
 
 
@@ -18,7 +22,7 @@ class AuthorizationPrincipal(ValueModel):
 
     principal_id: UUID
     principal_type: PrincipalType
-    role: RoleCode
+    role: AuthorizationRole
     status: PrincipalStatus
     account_id: UUID | None
     service_slug: str | None
@@ -34,7 +38,11 @@ class AuthorizationPrincipal(ValueModel):
                     "invalid_principal_binding",
                     "Human principal requires only an account binding",
                 )
-            if self.role not in (RoleCode.USER, RoleCode.SUPPORT, RoleCode.MASTER):
+            if self.role not in (
+                AuthorizationRole.USER,
+                AuthorizationRole.SUPPORT,
+                AuthorizationRole.MASTER,
+            ):
                 raise PydanticCustomError(
                     "invalid_principal_role",
                     "Human principal requires a human role",
@@ -50,7 +58,7 @@ class AuthorizationPrincipal(ValueModel):
                 "invalid_principal_binding",
                 "Service principal requires only a non-empty service binding",
             )
-        if self.role is not RoleCode.AUTO:
+        if self.role is not AuthorizationRole.AUTO:
             raise PydanticCustomError(
                 "invalid_principal_role",
                 "Service principal requires the auto role",
@@ -63,7 +71,7 @@ class AuthorizationPrincipal(ValueModel):
         *,
         principal_id: UUID,
         account_id: UUID,
-        role: RoleCode,
+        role: AuthorizationRole,
         now: datetime,
     ) -> Self:
         """Create an active human principal with one explicit human role."""
@@ -90,7 +98,7 @@ class AuthorizationPrincipal(ValueModel):
         return cls(
             principal_id=principal_id,
             principal_type=PrincipalType.SERVICE,
-            role=RoleCode.AUTO,
+            role=AuthorizationRole.AUTO,
             status=PrincipalStatus.ACTIVE,
             account_id=None,
             service_slug=service_slug,
@@ -111,7 +119,7 @@ class AuthorizationPrincipal(ValueModel):
             updated_at=now,
         )
 
-    def assign_human_role(self, role: RoleCode, *, now: datetime) -> Self:
+    def assign_human_role(self, role: AuthorizationRole, *, now: datetime) -> Self:
         """Return a human principal with one newly assigned explicit role."""
         if self.principal_type is not PrincipalType.HUMAN:
             raise PydanticCustomError(

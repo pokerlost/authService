@@ -59,10 +59,17 @@ call and a local database transaction cannot form one atomic transaction. Struct
 workflow so remote I/O and a short local persistence phase have explicit ordering and failure
 semantics, without treating either side as a distributed commit participant.
 
-The boundary also excludes service-token acquisition, every retry attempt, and every backoff
-sleep. Retry is transport recovery, not business reconciliation. A replay-safe mutation must reuse
-the same `business_operation_id` and semantic payload against a persisted target idempotency
-contract; an ambiguous remote result still requires the owning workflow's reconciliation policy.
+The prohibited span includes service-owned token acquisition, the first target attempt,
+`Retry-After` or jitter backoff sleep, and every later attempt. End the request-owned transaction
+before entering that outbound phase. Reuse the service's existing workflow or reconciliation seam
+for an ambiguous remote outcome; do not introduce an unowned transaction, hold a session idle, or
+treat transport retry as durable business reconciliation.
+
+Mutation retry is allowed only when the target contract persists idempotency and every attempt
+uses the same `business_operation_id` and the same semantic payload. The SDK neither creates that
+key nor persists fingerprint, workflow, outbox, or reconciliation state. Detailed client and retry
+composition is documented in `docs/architecture/inter-service-clients.md`.
+
 authService's current token issuance performs no outbound call.
 
 ## Failure mapping

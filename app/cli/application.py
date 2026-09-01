@@ -9,6 +9,7 @@ from uuid import UUID
 import typer
 import uvicorn
 from pydantic import ValidationError
+from pypokerlost.types import parse_oauth_scope_string
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from application.errors import ApplicationError
@@ -19,7 +20,6 @@ from application.oauth2.bootstrap_service_client import (
 )
 from configuration import Settings
 from domain.resource_indicator import ResourceIndicator
-from domain.scope_name import ScopeName
 from persistence.database import create_database_engine, create_session_factory
 from persistence.queries import SQLAlchemyRoleScopeQuery
 from persistence.repositories import (
@@ -148,7 +148,7 @@ def _build_bootstrap_command(
     return BootstrapServiceClientCommand(
         service_slug=service_slug,
         client_id=parsed_client_id,
-        scopes=tuple(ScopeName.parse(value) for value in scope_values),
+        scopes=parse_oauth_scope_string(" ".join(scope_values)),
         resources=tuple(ResourceIndicator.parse(value) for value in resource_values),
     )
 
@@ -168,7 +168,7 @@ async def _execute_bootstrap(
                 SQLAlchemyRoleScopeQuery(session),
                 SHA256OAuthClientSecretProcessor(),
             )
-            return await handler.execute(command)
+            return await handler(command)
     finally:
         await engine.dispose()
 

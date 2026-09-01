@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from application import Handler
 from application.errors import OAuthClientConflictError, PrincipalConflictError
 from application.ports import (
     AuthorizationPrincipalRepository,
+    Handler,
     OAuthClientRepository,
     OAuthClientSecretProcessor,
     RoleScopeQuery,
@@ -47,7 +47,7 @@ class BootstrapServiceClientHandler(
         self._role_scope_query = role_scope_query
         self._secret_processor = secret_processor
 
-    async def execute(
+    async def __call__(
         self,
         input_: BootstrapServiceClientCommand,
         /,

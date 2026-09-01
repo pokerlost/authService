@@ -7,9 +7,6 @@ from .oauth_client_credential_status import OAuthClientCredentialStatus
 from .oauth_client_status import OAuthClientStatus
 from .oauth_client_type import OAuthClientType
 from .oauth_grant_type import OAuthGrantType
-from .principal_status import PrincipalStatus
-from .principal_type import PrincipalType
-from .role_code import RoleCode
 
 __all__ = (
     "Environment",
@@ -17,7 +14,4 @@ __all__ = (
     "OAuthClientStatus",
     "OAuthClientType",
     "OAuthGrantType",
-    "PrincipalStatus",
-    "PrincipalType",
-    "RoleCode",
 )

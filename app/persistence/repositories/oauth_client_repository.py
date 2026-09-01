@@ -16,7 +16,7 @@ from application.ports import OAuthClientRepository
 from domain.enums import OAuthClientStatus, OAuthClientType, OAuthGrantType
 from domain.oauth_client import OAuthClient
 from domain.oauth_client_credential import OAuthClientCredential
-from domain.oauth_scope import OAuthScope
+from domain.oauth_scope_definition import OAuthScopeDefinition
 from domain.resource_indicator import ResourceIndicator
 from persistence.database.models import (
     OAuthClientAudienceGrantModel,
@@ -120,7 +120,7 @@ class SQLAlchemyOAuthClientRepository(SQLAlchemyRepository, OAuthClientRepositor
     async def add_service_scope_grants(
         self,
         principal_id: UUID,
-        scopes: Collection[OAuthScope],
+        scopes: Collection[OAuthScopeDefinition],
         *,
         created_at: datetime,
     ) -> None:
@@ -138,7 +138,7 @@ class SQLAlchemyOAuthClientRepository(SQLAlchemyRepository, OAuthClientRepositor
     async def add_client_scope_grants(
         self,
         client_id: UUID,
-        scopes: Collection[OAuthScope],
+        scopes: Collection[OAuthScopeDefinition],
         *,
         created_at: datetime,
     ) -> None:

@@ -6,10 +6,10 @@ from typing import Self
 from uuid import UUID
 
 from pydantic import field_validator, model_validator
+from pypokerlost.types import OAuthScope
 
 from application import Command
 from domain.resource_indicator import ResourceIndicator
-from domain.scope_name import ScopeName
 
 
 class BootstrapServiceClientCommand(Command):
@@ -17,7 +17,7 @@ class BootstrapServiceClientCommand(Command):
 
     service_slug: str
     client_id: UUID | None = None
-    scopes: tuple[ScopeName, ...]
+    scopes: tuple[OAuthScope, ...]
     resources: tuple[ResourceIndicator, ...]
 
     @field_validator("service_slug")
@@ -33,7 +33,7 @@ class BootstrapServiceClientCommand(Command):
         """Require non-empty, duplicate-free exact grant collections."""
         if not self.scopes:
             raise ValueError("At least one OAuth2 scope is required")
-        if len({scope.value for scope in self.scopes}) != len(self.scopes):
+        if len(frozenset(self.scopes)) != len(self.scopes):
             raise ValueError("Duplicate OAuth2 scopes are not allowed")
         if not self.resources:
             raise ValueError("At least one resource indicator is required")

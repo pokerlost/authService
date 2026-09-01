@@ -1,20 +1,20 @@
-"""OAuth2 scope catalog domain value."""
+"""Persisted OAuth2 scope catalog domain value."""
 
 from __future__ import annotations
 
 from uuid import UUID
 
 from pydantic import AwareDatetime, field_validator
+from pypokerlost.types import OAuthScope
 
-from domain.scope_name import ScopeName
 from domain.value_model import ValueModel
 
 
-class OAuthScope(ValueModel):
+class OAuthScopeDefinition(ValueModel):
     """One persisted OAuth2 scope catalog entry."""
 
     scope_id: UUID
-    name: ScopeName
+    name: OAuthScope
     description: str
     created_at: AwareDatetime
     updated_at: AwareDatetime

@@ -2,37 +2,40 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from collections.abc import Collection
+from typing import Protocol
 
-from domain.authorization_role import AuthorizationRole
-from domain.enums import RoleCode
-from domain.oauth_scope import OAuthScope
-from domain.scope_name import ScopeName
+from pypokerlost.contracts.authorization import AuthorizationRole
+from pypokerlost.types import OAuthScope
+
+from domain.authorization_role_definition import AuthorizationRoleDefinition
+from domain.oauth_scope_definition import OAuthScopeDefinition
 
 
-class RoleScopeQuery(ABC):
+class RoleScopeQuery(Protocol):
     """Read persisted role compatibility and exact explicit scope grants."""
 
-    @abstractmethod
-    async def get_role_by_code(self, code: RoleCode) -> AuthorizationRole:
+    async def get_role_by_code(self, code: AuthorizationRole) -> AuthorizationRoleDefinition:
         """Return the persisted role with the exact code."""
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     async def get_scopes_by_exact_names(
         self,
-        names: Collection[ScopeName],
-    ) -> tuple[OAuthScope, ...]:
+        names: Collection[OAuthScope],
+    ) -> tuple[OAuthScopeDefinition, ...]:
         """Return every requested catalog scope or fail when any exact name is absent."""
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
-    async def resolve_allowed_scope_names(self, role: RoleCode) -> frozenset[ScopeName]:
+    async def resolve_allowed_scope_names(
+        self,
+        role: AuthorizationRole,
+    ) -> frozenset[OAuthScope]:
         """Return names from every explicit grant row for the exact role."""
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
-    async def resolve_default_scope_names(self, role: RoleCode) -> frozenset[ScopeName]:
+    async def resolve_default_scope_names(
+        self,
+        role: AuthorizationRole,
+    ) -> frozenset[OAuthScope]:
         """Return names from explicit default grant rows for the exact role."""
-        raise NotImplementedError
+        ...

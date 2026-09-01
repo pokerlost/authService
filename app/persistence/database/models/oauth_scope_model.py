@@ -15,7 +15,7 @@ class OAuthScopeModel(TimestampMixin, UUIDModel):
     __tablename__ = "oauth_scopes"
     __table_args__ = (
         CheckConstraint(
-            "name ~ '^[a-z][a-z0-9_]*([.][a-z][a-z0-9_]*)+$'",
+            "name ~ '^[a-z][A-Za-z0-9]*([.][a-z][A-Za-z0-9]*)+$'",
             name="ck_oauth_scopes_name_format",
         ),
         CheckConstraint(

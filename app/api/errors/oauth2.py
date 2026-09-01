@@ -35,9 +35,7 @@ _ERROR_MESSAGES: Final[dict[OAuth2ErrorCode, str]] = {
 
 def is_oauth_token_request(request: Request) -> bool:
     """Return whether the request targets the exact OAuth2 token path."""
-    from api.routers.oauth_token.router import OPERATION
-
-    return request.url.path == f"/{OPERATION}"
+    return request.url.path == "/oauth.token"
 
 
 def oauth2_error_response(error: OAuth2ErrorCode) -> JSONResponse:

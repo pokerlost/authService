@@ -2,23 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 import jwt
 from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from pypokerlost.contracts.authorization import AccessTokenClaims
 
-from application.ports import ServiceAccessTokenClaims, ServiceAccessTokenSigner
+from application.ports import ServiceAccessTokenSigner
 from configuration import JWTSettings
 
 _ALGORITHM = "RS256"
 _MINIMUM_RSA_KEY_SIZE = 2048
-
-
-def _numeric_date(value: datetime) -> int:
-    """Convert an aware timestamp to a UTC NumericDate."""
-    return int(value.astimezone(UTC).timestamp())
 
 
 class PyJWTServiceAccessTokenSigner(ServiceAccessTokenSigner):
@@ -51,22 +45,9 @@ class PyJWTServiceAccessTokenSigner(ServiceAccessTokenSigner):
         self._key = private_key
         self._key_id = settings.key_id
 
-    def sign(self, claims: ServiceAccessTokenClaims) -> str:
+    def sign(self, claims: AccessTokenClaims) -> str:
         """Return an RS256 compact JWT containing only the approved service claims."""
-        payload: dict[str, str | int] = {
-            "iss": claims.issuer,
-            "sub": str(claims.subject),
-            "aud": str(claims.audience),
-            "iat": _numeric_date(claims.issued_at),
-            "nbf": _numeric_date(claims.not_before),
-            "exp": _numeric_date(claims.expires_at),
-            "jti": str(claims.token_id),
-            "client_id": str(claims.client_id),
-            "scope": claims.scope,
-            "principal_type": claims.principal_type.value,
-            "role": claims.role.value,
-            "service_slug": claims.service_slug,
-        }
+        payload = claims.model_dump(mode="json", by_alias=True, exclude_none=True)
         return jwt.encode(
             payload,
             self._key,

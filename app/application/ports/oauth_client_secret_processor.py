@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import re
-from abc import ABC, abstractmethod
-from typing import ClassVar
+from typing import ClassVar, Protocol
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_core import PydanticCustomError
@@ -33,15 +32,13 @@ class GeneratedOAuthClientSecret(ValueModel):
         return secret
 
 
-class OAuthClientSecretProcessor(ABC):
+class OAuthClientSecretProcessor(Protocol):
     """Generate digest-only credentials and verify presented secrets."""
 
-    @abstractmethod
     def generate(self) -> GeneratedOAuthClientSecret:
         """Generate one raw secret and its dedicated persistent digest."""
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def verify(self, secret: SecretStr, expected_digest: bytes) -> bool:
         """Compare a presented secret with one persisted digest."""
-        raise NotImplementedError
+        ...

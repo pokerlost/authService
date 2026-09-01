@@ -6,6 +6,11 @@ from collections.abc import Sequence
 from typing import Never
 from uuid import UUID
 
+from pypokerlost.contracts.authorization import (
+    AuthorizationRole,
+    PrincipalStatus,
+    PrincipalType,
+)
 from sqlalchemy import ColumnElement, and_, select, update
 from sqlalchemy.exc import IntegrityError as SQLAlchemyIntegrityError
 
@@ -13,7 +18,6 @@ from application.errors import IntegrityError as ApplicationIntegrityError
 from application.errors import PrincipalConflictError, RoleNotFoundError
 from application.ports import AuthorizationPrincipalRepository
 from domain.authorization_principal import AuthorizationPrincipal
-from domain.enums import PrincipalStatus, PrincipalType, RoleCode
 from persistence.database.models import (
     AuthorizationPrincipalModel,
     AuthorizationRoleModel,
@@ -132,7 +136,7 @@ class SQLAlchemyAuthorizationPrincipalRepository(
 
     async def _resolve_role_id(
         self,
-        code: RoleCode,
+        code: AuthorizationRole,
         principal_type: PrincipalType,
     ) -> UUID:
         result = await self._read_scalar(
@@ -169,7 +173,7 @@ class SQLAlchemyAuthorizationPrincipalRepository(
         return AuthorizationPrincipal(
             principal_id=model.id,
             principal_type=PrincipalType(model.principal_type),
-            role=RoleCode(role_code),
+            role=AuthorizationRole(role_code),
             status=PrincipalStatus(model.status),
             account_id=model.account_id,
             service_slug=model.service_slug,

@@ -15,6 +15,15 @@ api
 api/application composition
 -> persistence adapters
 
+api/application composition
+-> target-specific pypokerlost clients
+
+application
+-> meaningful service-owned ports
+
+target-specific adapters
+-> generated pypokerlost methods
+
 configuration and observability
 -> infrastructure concerns
 
@@ -39,7 +48,7 @@ the application or domain layers.
 | Layer | Responsibility |
 | --- | --- |
 | `api` | Application factory, lifespan, middleware, dependencies, routes, public schemas, OpenAPI, and safe errors. |
-| `application` | Commands, queries, results, handler contracts, and concrete use-case orchestration. |
+| `application` | Commands, queries, results, meaningful Protocol ports, handler contracts, and concrete use-case orchestration. |
 | `domain` | Framework-independent internal values and closed domain or platform categories. |
 | `persistence` | SQLAlchemy metadata, sessions, repositories, result readers, projections, and concrete adapters. |
 | `security` | OAuth client-secret generation and verification plus the PyJWT-backed RS256 signer. |
@@ -63,7 +72,9 @@ bootstrap command, and `POST /oauth.token` on top of the authorization domain an
 foundation. The detailed responsibility split and authorization rules are documented in
 `docs/architecture/service-client-credentials.md`.
 
-Consumer services use the `pypokerlost` authentication and outbound middleware pipeline described
-in `docs/api/openapi-and-sdk.md`. That client lifecycle remains consumer-owned. authService does not
-instantiate an outbound client to itself or accountsService for credential validation, token
-issuance, login-grant exchange, refresh, or JWT signing.
+When `SERVICE.md` declares a real
+outbound target, `docs/architecture/inter-service-clients.md` defines the target-specific SDK
+client, service-owned token port and adapter, retry, dependency, and lifecycle extension.
+
+authService does not instantiate an outbound client to itself or accountsService for credential
+validation, token issuance, login-grant exchange, refresh, or JWT signing.

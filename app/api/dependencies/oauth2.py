@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import Depends, Form, Request, Security
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import SecretStr, ValidationError
+from pypokerlost.types import OAuthScope, parse_oauth_scope_string
 
 from api.schemas.requests import OAuthTokenRequest
 from application.oauth2 import OAuth2ErrorCode, OAuth2TokenError
@@ -15,7 +16,6 @@ from application.oauth2.issue_client_credentials_token import (
     IssueClientCredentialsTokenHandler,
 )
 from domain.resource_indicator import ResourceIndicator
-from domain.scope_name import ScopeName
 from domain.value_model import ValueModel
 from persistence.queries import SQLAlchemyClientCredentialsQuery
 from security import SHA256OAuthClientSecretProcessor
@@ -44,7 +44,7 @@ class _OAuthClientAuthentication(ValueModel):
 class _ParsedOAuthTokenInput(ValueModel):
     """Exact protocol values derived through Starlette form parsing."""
 
-    requested_scopes: tuple[ScopeName, ...]
+    requested_scopes: tuple[OAuthScope, ...]
     resource: ResourceIndicator
 
 
@@ -86,15 +86,10 @@ def _resolve_oauth_token_protocol_input(
         raise OAuth2TokenError(OAuth2ErrorCode.UNSUPPORTED_GRANT_TYPE)
 
     raw_scope = form.scope[0]
-    raw_scope_tokens = raw_scope.split(" ")
-    if not raw_scope or any(not token for token in raw_scope_tokens):
-        raise OAuth2TokenError(OAuth2ErrorCode.INVALID_SCOPE)
     try:
-        requested_scopes = tuple(ScopeName.parse(token) for token in raw_scope_tokens)
-    except ValidationError:
+        requested_scopes = parse_oauth_scope_string(raw_scope)
+    except ValueError:
         raise OAuth2TokenError(OAuth2ErrorCode.INVALID_SCOPE) from None
-    if len(frozenset(requested_scopes)) != len(requested_scopes):
-        raise OAuth2TokenError(OAuth2ErrorCode.INVALID_SCOPE)
 
     try:
         resource = ResourceIndicator.parse(form.resource[0])

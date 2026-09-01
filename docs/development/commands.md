@@ -77,10 +77,10 @@ The installed `authservice` Typer application retains `run` and adds the service
 ```bash
 authservice bootstrap-service-client \
   --service-slug accountsservice \
-  --scope auth.internal.provision_human \
-  --scope auth.internal.set_principal_status \
-  --scope auth.internal.assign_role \
-  --scope auth.internal.issue_login_grant \
+  --scope auth.internal.provisionHuman \
+  --scope auth.internal.setPrincipalStatus \
+  --scope auth.internal.assignRole \
+  --scope auth.internal.issueLoginGrant \
   --resource urn:pokerlost:service:authService
 ```
 

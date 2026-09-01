@@ -6,13 +6,22 @@ from fastapi import FastAPI
 
 from configuration import Settings
 
-from .routers.oauth_token import router as oauth_token_router
+from .routers.oauth_token import create_oauth_token_router
 from .routers.openapi_document import create_openapi_document_router
 from .routers.root import create_root_router
 
 
 def configure_routes(application: FastAPI, settings: Settings) -> None:
     """Register settings-aware template baseline routers."""
-    application.include_router(create_root_router(settings))
-    application.include_router(create_openapi_document_router(settings))
-    application.include_router(oauth_token_router)
+    application.include_router(
+        create_root_router(
+            operation=settings.root_operation,
+        )
+    )
+    application.include_router(
+        create_openapi_document_router(
+            application=application,
+            operation=settings.openapi_operation,
+        )
+    )
+    application.include_router(create_oauth_token_router())

@@ -34,12 +34,11 @@ The authoritative generator reads the wrapped publication, ignores the two syste
 creates typed `PokerlostMethod` and response classes for compatible PokerLost application
 operations.
 
-The method generator sees `/oauth.token`, but its form request is intentionally outside ordinary
-generated JSON operation input. The service keeps the accurate FastAPI-generated form, HTTP Basic,
-success-envelope, and failure-envelope contract visible instead of hiding or rewriting it. The SDK
-owns one focused internal token request in `ClientCredentialsTokenProvider`; that path reuses the
-canonical session transport and `ApplicationResponse` decoder rather than creating a generated
-business method or a consumer-owned HTTP client.
+The method generator reads `/oauth.token` as an ordinary operation. Standard OpenAPI
+`requestBody.content` preserves its `application/x-www-form-urlencoded` request, the security
+scheme preserves HTTP Basic, and the response schemas preserve the success and failure envelopes.
+The generated `OAuthTokenMethod` reuses the shared SDK `OAuthTokenResponse` instead of generating
+a duplicate model.
 
 Generation is repository-owned development tooling in the authoritative `pypokerlost` checkout;
 it is not an installed command in the runtime SDK distribution. Service mode receives the
@@ -57,18 +56,23 @@ response types. A concrete service creates a client only for a target declared b
 shutdown. It does not create a parallel HTTP client, URL builder, response decoder, or local copy
 of a remote service DTO.
 
-A service consumer imports authentication and middleware from the focused public facades:
+The SDK owns transport, generated methods, shared authorization models, generic request headers,
+canonical exceptions, and `PokerLostRetryPolicy`; it does not own token acquisition, credentials,
+token storage or caching, refresh, auth-specific middleware, or bearer injection. A consuming
+service owns token orchestration through an application port and a focused adapter over the
+generated `OAuthTokenMethod`. Generic per-call headers carry caller-supplied authorization, while
+retry uses the canonical transport policy:
 
 ```python
-from pypokerlost.client.auth import ClientCredentials, ClientCredentialsTokenProvider
-from pypokerlost.middleware import BearerTokenMiddleware, RetryMiddleware
+from pypokerlost.client.request import RequestOptions
+from pypokerlost.client.retry import PokerLostRetryPolicy
 ```
 
-The target client registers `RetryMiddleware()` first and
-`BearerTokenMiddleware(token_provider)` second. The first middleware is outermost, so every retry
-attempt re-enters bearer resolution while the provider normally serves its process-local cached
-token. Retry remains off without an explicit per-call `RequestOptions(retry=RetryPolicy(...))`, and
-the SDK never automatically replays `401` or `403`.
+Token credentials, requested scopes, storage, caching and refresh decisions remain inside the
+consuming service. Retry remains off without an explicit
+`RequestOptions(retry=PokerLostRetryPolicy())`, and the SDK never automatically replays `401` or
+`403`. The exact extension pattern is documented in
+`docs/architecture/inter-service-clients.md`.
 
 Business mutation replay remains the consumer's responsibility: it must reuse the same
 `business_operation_id` and semantic payload and rely on the target's persisted idempotency

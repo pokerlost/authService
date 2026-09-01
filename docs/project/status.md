@@ -33,6 +33,12 @@ retained signing keys, and signing-key rotation are not implemented. The reposit
 persisted idempotency record or remote-service client. Operation identifiers listed in `SERVICE.md`
 outside the current public surface are service responsibilities, not callable endpoints.
 
+The SDK transport/shared-contract boundary, service-owned token port and adapter, and explicit
+`PokerLostRetryPolicy` opt-in are documented in
+`docs/architecture/inter-service-clients.md`. They are extension points rather than current
+runtime resources: authService has no outbound target URL, token-acquisition port, token cache, or
+unused client.
+
 `SERVICE.md` defines the concrete service purpose, responsibilities, and service-specific rules.
 Future documentation must describe only implemented current behavior and be listed in
 `docs/index.md` when introduced.

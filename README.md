@@ -51,26 +51,33 @@ PostgreSQL transaction:
 ```bash
 authservice bootstrap-service-client \
   --service-slug accountsservice \
-  --scope auth.internal.provision_human \
-  --scope auth.internal.set_principal_status \
-  --scope auth.internal.assign_role \
-  --scope auth.internal.issue_login_grant \
+  --scope auth.internal.provisionHuman \
+  --scope auth.internal.setPrincipalStatus \
+  --scope auth.internal.assignRole \
+  --scope auth.internal.issueLoginGrant \
   --resource urn:pokerlost:service:authService
 ```
 
 The command prints the generated client ID and raw client secret only after commit. Store the raw
 secret immediately; authService persists only its digest and cannot recover it later.
 
-Service consumers use the SDK-owned authentication and outbound middleware facades:
+Service consumers own token acquisition through an application port and a focused adapter that
+calls the generated `oauth.token` SDK method. The SDK owns transport and canonical retry only:
 
 ```python
-from pypokerlost.client.auth import ClientCredentialsTokenProvider
-from pypokerlost.middleware import BearerTokenMiddleware, RetryMiddleware
+from pypokerlost.client.request import RequestOptions
+from pypokerlost.client.retry import PokerLostRetryPolicy
 ```
 
-`RetryMiddleware` is registered outside `BearerTokenMiddleware`, but retry stays off unless a
-replay-safe call supplies an explicit policy. authService itself creates no outbound client to
-accountsService or to itself.
+Retry stays off unless a replay-safe call supplies
+`RequestOptions(retry=PokerLostRetryPolicy())`. Token storage and refresh remain consumer-owned;
+authService itself creates no outbound client to accountsService or to itself.
+
+The SDK source defines transport, shared authorization contracts, generic request headers, and the
+canonical explicit per-call retry policy. A consuming service owns credentials and token
+orchestration behind application ports and adapters. The pristine service creates no target
+client, credentials, token storage, or retry settings; extension guidance lives in
+`docs/architecture/inter-service-clients.md`.
 
 ## Development and deployment
 

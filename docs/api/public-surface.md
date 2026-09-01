@@ -39,10 +39,10 @@ space-delimited `scope`, and one exact resource indicator matching
 `urn:pokerlost:service:<serviceIdentity>`. Confidential-client credentials are accepted only as
 HTTP Basic authentication. Body `client_id` or `client_secret` parameters are invalid.
 
-The client ID is a canonical lowercase hyphenated UUID. The requested scope tokens are exact,
-case-sensitive `ScopeName` values without duplicates. A successful request requires every scope in
-both the service principal's direct grants and the bound OAuth client's grants, and requires the
-exact resource in both audience grant sets.
+The client ID is a canonical lowercase hyphenated UUID. Requested scopes are exact,
+case-sensitive `OAuthScope` values with dot-delimited lowerCamelCase segments and no duplicates. A
+successful request requires every scope in both the service principal's direct grants and the
+bound OAuth client's grants, and requires the exact resource in both audience grant sets.
 
 Success contains `access_token`, `token_type: "bearer"`, configured `expires_in`, and the
 deterministically sorted exact scope string inside `ApplicationResponse.result`. The access token

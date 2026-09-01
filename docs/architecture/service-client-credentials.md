@@ -76,23 +76,24 @@ are excluded from structured logs and exception payloads.
 
 ## Consumer SDK boundary
 
-Consumers use the SDK-owned provider and outbound middleware facades:
+A consumer application handler delegates token acquisition to a service-owned application port.
+Its focused `pypokerlost` adapter calls the generated `OAuthTokenMethod`; the SDK owns only the
+transport and shared wire contracts. Canonical retry is available through:
 
 ```python
-from pypokerlost.client.auth import ClientCredentials, ClientCredentialsTokenProvider
-from pypokerlost.middleware import BearerTokenMiddleware, RetryMiddleware
+from pypokerlost.client.request import RequestOptions
+from pypokerlost.client.retry import PokerLostRetryPolicy
 ```
 
 One target-specific client is created and started in the consumer's application lifespan, reused
-across requests, and stopped during shutdown. Its middleware tuple places `RetryMiddleware()`
-before `BearerTokenMiddleware(token_provider)`, making retry outermost. Token acquisition uses the
-provider's focused form/Basic request and the canonical PokerLost envelope decoder; a consumer does
-not build `/oauth.token`, Basic headers, token caches, or a second HTTP client.
+across requests, and stopped during shutdown. The adapter supplies credentials through generic
+per-call request options. Credential ownership, requested scopes, token storage and refresh
+orchestration remain service concerns rather than SDK state.
 
-Retry is disabled unless one replay-safe call supplies an explicit `RetryPolicy` through
+Retry is disabled unless one replay-safe call supplies an explicit `PokerLostRetryPolicy` through
 `RequestOptions`. There is no automatic replay after `401` or `403`. Mutation replay requires the
-same consumer-owned `business_operation_id` and semantic payload, and no PostgreSQL transaction may
-span token acquisition, an outbound attempt, or backoff sleep. authService does not create a
+same consumer-owned `business_operation_id` and semantic payload, and no PostgreSQL transaction
+may span token acquisition, an outbound attempt, or backoff sleep. authService does not create a
 reverse client to accountsService or an outbound client to itself.
 
 ## Current signing-key boundary

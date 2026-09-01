@@ -43,12 +43,12 @@ OAuth2 authorization server and token authority for PokerLost.
   and are shown once by the operator bootstrap command.
 - JWT signing uses RS256 with mandatory `kid`; the private key is loaded from a mounted Secret file.
 - AUTH-02 publishes no JWKS and retains no signing-key history; those capabilities remain deferred.
-- Service consumers acquire credentials through `ClientCredentialsTokenProvider`, add bearer
-  authentication through `BearerTokenMiddleware`, and register `RetryMiddleware` outside bearer
-  middleware. Retry remains disabled without an explicit per-call policy and never replays `401`
-  or `403` automatically.
-- These are consumer-side SDK concerns. authService does not instantiate an outbound client to
-  itself or to accountsService during token issuance, refresh, or credential validation.
+- Service consumers own token acquisition, storage and refresh orchestration through application
+  ports and focused adapters over the generated `oauth.token` SDK method.
+- The SDK owns HTTP transport, shared wire contracts and `PokerLostRetryPolicy`; retry remains an
+  explicit per-call choice and never replays `401` or `403` automatically.
+- authService does not instantiate an outbound client to itself or to accountsService during token
+  issuance, refresh, or credential validation.
 
 ## Current service-client profile
 
@@ -72,7 +72,8 @@ OAuth2 authorization server and token authority for PokerLost.
 - Reserved identifiers for later authorization responsibilities are `principals.provisionHuman`,
   `principals.setStatus`, `principals.assignRole`, and `loginGrants.issue`; they are not part of the
   current HTTP surface.
-- OAuth2 scope identifiers are separate lowercase dotted values and retain names such as `auth.internal.provision_human`.
+- OAuth2 scope identifiers are separate dot-delimited lowerCamelCase values such as
+  `auth.internal.provisionHuman`.
 
 ## Protocol vocabulary
 
