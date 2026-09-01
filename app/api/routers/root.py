@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, status
-from pypokerlost.types import APIOperation
+from pypokerlost.types import PokerlostOperation
 
 from api.schemas.responses import ApplicationResponse, RootResponse
 
 
-def create_root_router(*, operation: APIOperation) -> APIRouter:
+def create_root_router(*, operation: PokerlostOperation) -> APIRouter:
     """Create the root router from validated runtime settings."""
     router = APIRouter(tags=["service"])
 

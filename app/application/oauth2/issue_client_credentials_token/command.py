@@ -5,7 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from pydantic import Field, SecretStr
-from pypokerlost.types import OAuthScope
+from pypokerlost.types import PokerlostScope
 
 from application import Command
 from domain.resource_indicator import ResourceIndicator
@@ -16,5 +16,5 @@ class IssueClientCredentialsTokenCommand(Command):
 
     client_id: UUID
     client_secret: SecretStr = Field(repr=False)
-    requested_scopes: tuple[OAuthScope, ...]
+    requested_scopes: tuple[PokerlostScope, ...]
     resource: ResourceIndicator

@@ -79,7 +79,7 @@ authservice bootstrap-service-client \
   --service-slug accountsservice \
   --scope auth.internal.provisionHuman \
   --scope auth.internal.setPrincipalStatus \
-  --scope auth.internal.assignRole \
+  --scope auth.internal.assignPrincipalRole \
   --scope auth.internal.issueLoginGrant \
   --resource urn:pokerlost:service:authService
 ```

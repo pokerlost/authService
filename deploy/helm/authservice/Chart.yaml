@@ -1,6 +1,6 @@
 apiVersion: v2
 name: authservice
-description: PokerLost OAuth2 authorization service.
+description: Pokerlost body-only token and authorization service.
 type: application
 version: "0.1.0"
 appVersion: "0.1.0"

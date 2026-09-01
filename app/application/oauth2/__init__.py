@@ -1,7 +1,7 @@
-"""OAuth2 application operations and protocol-safe failures."""
+"""OAuth client application operations and protocol-safe failures."""
 
 from __future__ import annotations
 
-from .errors import OAuth2ErrorCode, OAuth2TokenError
+from .errors import GetTokenError, GetTokenErrorCode
 
-__all__ = ("OAuth2ErrorCode", "OAuth2TokenError")
+__all__ = ("GetTokenError", "GetTokenErrorCode")

@@ -6,7 +6,7 @@ import logfire
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
-from api.request_context import correlation_id_from_state, request_id_from_state
+from api.request_context import request_id_from_state
 from application.errors import (
     ApplicationError,
     ConflictError,
@@ -14,9 +14,9 @@ from application.errors import (
     InvalidOperationError,
     NotFoundError,
 )
-from application.oauth2 import OAuth2ErrorCode
+from application.oauth2 import GetTokenErrorCode
 
-from .oauth2 import is_oauth_token_request, oauth2_error_response
+from .get_token import get_token_error_response, is_get_token_request
 from .response import error_response
 
 
@@ -24,14 +24,13 @@ async def handle_application_error(request: Request, exception: Exception) -> JS
     """Map a semantic application failure without exposing internal state."""
     if not isinstance(exception, ApplicationError):
         raise TypeError("Unexpected exception registered as ApplicationError")
-    if is_oauth_token_request(request):
+    if is_get_token_request(request):
         logfire.error(
-            "OAuth2 token application operation failed",
+            "getToken application operation failed",
             request_id=request_id_from_state(request),
-            correlation_id=correlation_id_from_state(request),
             _exc_info=exception,
         )
-        return oauth2_error_response(OAuth2ErrorCode.SERVER_ERROR)
+        return get_token_error_response(GetTokenErrorCode.SERVER_ERROR)
     if isinstance(exception, NotFoundError):
         status_code = status.HTTP_404_NOT_FOUND
     elif isinstance(exception, ConflictError):
@@ -46,7 +45,6 @@ async def handle_application_error(request: Request, exception: Exception) -> JS
         logfire.error(
             "Application operation failed",
             request_id=request_id_from_state(request),
-            correlation_id=correlation_id_from_state(request),
             _exc_info=exception,
         )
     return error_response(

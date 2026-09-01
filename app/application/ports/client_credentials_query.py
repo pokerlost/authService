@@ -7,12 +7,12 @@ from uuid import UUID
 
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
-from pypokerlost.contracts.authorization import (
+from pypokerlost.types import (
     AuthorizationRole,
+    PokerlostScope,
     PrincipalStatus,
     PrincipalType,
 )
-from pypokerlost.types import OAuthScope
 
 from domain.enums import (
     OAuthClientStatus,
@@ -38,8 +38,8 @@ class ClientCredentialsAuthorizationContext(ValueModel):
     service_slug: str | None
     credentials: tuple[OAuthClientCredential, ...]
     grant_types: frozenset[OAuthGrantType]
-    service_scopes: frozenset[OAuthScope]
-    client_scopes: frozenset[OAuthScope]
+    service_scopes: frozenset[PokerlostScope]
+    client_scopes: frozenset[PokerlostScope]
     service_audiences: frozenset[ResourceIndicator]
     client_audiences: frozenset[ResourceIndicator]
 

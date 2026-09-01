@@ -9,9 +9,9 @@ response handling in the generated service.
 and registers request-context middleware, exception handlers, routes, and instrumentation. It
 disables the built-in OpenAPI and documentation URLs.
 
-Application lifespan creates the async SQLAlchemy engine, session factory, one process-owned
-`BusinessOperationFingerprinter`, and one process-owned RS256 service-token signer. It instruments
-the engine when configured and stores the resources in immutable `ApplicationResources`. Signer
+Application lifespan creates the async SQLAlchemy engine, session factory, and one process-owned
+RS256 service-token signer. It instruments the engine when configured and stores the resources in
+immutable `ApplicationResources`. Signer
 construction reads and validates the configured PEM private key once, before requests are served.
 Settings and resources are attached to application state for dependencies. Shutdown removes that
 state and disposes the engine.
@@ -54,28 +54,27 @@ create_app
    statements through the injected request session and let exceptions propagate to the API
    boundary.
 5. An application route converts the result into a typed API response and returns the
-   `ApplicationResponse` envelope documented in `docs/api/application-response.md`. FastAPI
+   `PokerlostResponse` envelope documented in `docs/api/application-response.md`. FastAPI
    validates and
    serializes the declared response model.
 
 The root and OpenAPI publication endpoints stop at the route: they have no application handler,
-repository, query adapter, or database dependency. The OAuth2 token route instead opens a database
-transaction, invokes the client-credentials handler, and returns its typed token result inside
-`ApplicationResponse` with no-store headers.
+repository, query adapter, or database dependency. The body-only `getToken` route instead opens a
+database transaction, invokes the client-credentials handler, and returns its typed token result
+inside `PokerlostResponse` without response metadata headers.
 
 When an application workflow makes an outbound call, it depends on a service-owned application
 port whose adapter resolves the named lifespan-owned client. Token orchestration remains in that
 service, while transport retry is enabled only by
-`RequestOptions(retry=PokerLostRetryPolicy())`. A request-owned database transaction must end
+`PokerlostRequestOptions(retry_policy=PokerlostRetryPolicy())`. A request-owned database transaction must end
 before token acquisition, the remote call, or backoff. See
 `docs/architecture/inter-service-clients.md` for the complete pattern.
 
 ## Safe error path
 
 Registered handlers convert validation, application, HTTP, and SQLAlchemy failures into documented
-safe envelopes. They recognize the exact OAuth2 token path only to select its stable
-`AUTHSERVICE_*` classification, status, cache headers, and optional Basic challenge; serialization
-still uses the central `ApplicationResponse[None]` helper. If another exception escapes, request
+safe envelopes. They recognize the exact `/getToken` path only to select its stable
+`AUTHSERVICE_*` classification and status; serialization uses `PokerlostResponse[None]`. If another exception escapes, request
 middleware records it with the request and correlation identifiers and selects the same
 path-specific safe envelope. The response still receives both context headers, while tracebacks
 and secrets stay out of the public body. See `docs/api/errors.md` for the exact mappings.

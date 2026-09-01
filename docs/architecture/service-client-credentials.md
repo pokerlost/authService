@@ -28,8 +28,8 @@ the transaction commits. It cannot display the raw secret again because persiste
 
 The focused security component owns secret generation, digest calculation, and verification. Its
 code-level domain separator is `pokerlost.oauth-client-secret.v1\x00`, and verification uses a
-constant-time digest comparison. It does not use password hashing, the business-operation
-fingerprint key, recoverable encryption, or a bare unseparated hash.
+constant-time digest comparison. It does not use password hashing, recoverable encryption, or a
+bare unseparated hash.
 
 An active credential is accepted until its optional expiry. A retiring credential is accepted
 only while it is not revoked and has not expired. A revoked or expired credential is never
@@ -49,11 +49,12 @@ hostname derivation, inheritance, or `master` bypass.
 
 ## Token issuance
 
-`POST /oauth.token` receives already parsed HTTP Basic credentials, form scopes, and one resource
-at the API boundary. The application handler loads an immutable authorization context through a
-query port, authenticates the credential without revealing why a candidate failed, evaluates both
-grant intersections, creates service-only claims, and calls the signer port. The route does not
-query SQLAlchemy, compare digests, construct JWTs, or complete the transaction.
+`POST /getToken` receives a validated `PokerlostRequest[GetTokenRequest]` JSON body. The API
+boundary parses the canonical client UUID and maps the logical audience to the existing internal
+resource representation. The application handler loads an immutable authorization context through
+a query port, authenticates the body credential without revealing why a candidate failed,
+evaluates both grant intersections, creates service-only claims, and calls the signer port. The
+route does not query SQLAlchemy, compare digests, construct JWTs, or complete the transaction.
 
 The process-owned security adapter loads the configured PEM key once during application lifespan,
 requires an RSA private key of at least 2048 bits, and signs with the fixed RS256 algorithm. Every
@@ -64,37 +65,38 @@ scope string, `principal_type=service`, `role=auto`, and `service_slug`.
 Numeric dates use UTC semantics. `nbf` is not later than `iat`, and `exp` is exactly the configured
 access-token TTL after `iat`. Every successful issuance generates a fresh `jti`.
 
-The route returns `ApplicationResponse[OAuthTokenResponse]`; the access token exists only at
-`result.access_token`. Handled failures use `ApplicationResponse[None]` with stable authService
-error metadata. The access token is not persisted. It contains no account, username, nickname,
-session, password, refresh-token, or all-possible-scope data. A service principal receives no
-session or refresh token.
+The route returns `PokerlostResponse[PokerlostToken]`; the access token exists only at
+`result.access_token`. Handled failures use `PokerlostResponse[None]` with stable authService error
+metadata. The response has no token type or HTTP-header representation. The access token is not
+persisted. It contains no account, username, nickname, session, password, refresh token, or
+all-possible-scope data. A service principal receives no session or refresh token.
 
-FastAPI instrumentation does not capture request headers or bodies. Authorization credentials,
-submitted form values, raw client secrets, access tokens, secret digests, and private-key material
+FastAPI instrumentation does not capture request headers or bodies. Submitted JSON credentials,
+raw client secrets, access tokens, secret digests, and private-key material
 are excluded from structured logs and exception payloads.
 
 ## Consumer SDK boundary
 
 A consumer application handler delegates token acquisition to a service-owned application port.
-Its focused `pypokerlost` adapter calls the generated `OAuthTokenMethod`; the SDK owns only the
-transport and shared wire contracts. Canonical retry is available through:
+Its focused `pypokerlost` composition uses the generated `GetToken` method and
+`PokerlostAuthorizationMiddleware`; the SDK owns transport, body authorization, token lifecycle,
+and shared wire contracts. Canonical retry is available through the middleware package.
 
 ```python
-from pypokerlost.client.request import RequestOptions
-from pypokerlost.client.retry import PokerLostRetryPolicy
+from pypokerlost import PokerlostRequestOptions
+from pypokerlost.middleware import PokerlostAuthorizationMiddleware, PokerlostRetryPolicy
 ```
 
 One target-specific client is created and started in the consumer's application lifespan, reused
-across requests, and stopped during shutdown. The adapter supplies credentials through generic
-per-call request options. Credential ownership, requested scopes, token storage and refresh
-orchestration remain service concerns rather than SDK state.
+across requests, and stopped during shutdown. A dedicated auth-target client without authorization
+middleware prevents recursion. Credentials enter only the `getToken` JSON payload; required exact
+scopes come from method metadata.
 
-Retry is disabled unless one replay-safe call supplies an explicit `PokerLostRetryPolicy` through
-`RequestOptions`. There is no automatic replay after `401` or `403`. Mutation replay requires the
-same consumer-owned `business_operation_id` and semantic payload, and no PostgreSQL transaction
-may span token acquisition, an outbound attempt, or backoff sleep. authService does not create a
-reverse client to accountsService or an outbound client to itself.
+Retry is disabled unless one replay-safe call supplies an explicit `PokerlostRetryPolicy` through
+`PokerlostRequestOptions.retry_policy`. There is no automatic replay after `401` or `403`.
+Mutation replay requires the same consumer-owned `business_operation_id` and semantic payload,
+and no PostgreSQL transaction may span token acquisition, an outbound attempt, or backoff sleep.
+authService does not create a reverse client to accountsService or an outbound client to itself.
 
 ## Current signing-key boundary
 

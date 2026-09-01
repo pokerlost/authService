@@ -47,7 +47,7 @@ principal, bound confidential client, grant type, both scope-grant sets, both au
 and active secret digest. A conflict or validation failure rolls the entire bundle back. The CLI
 prints the one-time raw secret only after the context exits successfully and commits.
 
-`POST /oauth.token` uses one request-owned transaction for authorization reads. Its query adapter
+`POST /getToken` uses one request-owned transaction for authorization reads. Its query adapter
 returns an immutable issuance context rather than ORM entities. The application handler evaluates
 the accepted credential records and exact grant intersections, then signs through the
 process-owned signer. It does not write or persist the access token.
@@ -60,15 +60,15 @@ workflow so remote I/O and a short local persistence phase have explicit orderin
 semantics, without treating either side as a distributed commit participant.
 
 The prohibited span includes service-owned token acquisition, the first target attempt,
-`Retry-After` or jitter backoff sleep, and every later attempt. End the request-owned transaction
+body `retry_after` or jitter backoff sleep, and every later attempt. End the request-owned transaction
 before entering that outbound phase. Reuse the service's existing workflow or reconciliation seam
 for an ambiguous remote outcome; do not introduce an unowned transaction, hold a session idle, or
 treat transport retry as durable business reconciliation.
 
 Mutation retry is allowed only when the target contract persists idempotency and every attempt
 uses the same `business_operation_id` and the same semantic payload. The SDK neither creates that
-key nor persists fingerprint, workflow, outbox, or reconciliation state. Detailed client and retry
-composition is documented in `docs/architecture/inter-service-clients.md`.
+key nor persists workflow, outbox, or reconciliation state. Detailed client and retry composition
+is documented in `docs/architecture/inter-service-clients.md`.
 
 authService's current token issuance performs no outbound call.
 

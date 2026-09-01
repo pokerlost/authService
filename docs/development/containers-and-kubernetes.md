@@ -43,13 +43,12 @@ process can serve its base response without turning the probe into a business op
 
 The top-level Helm values `rootOperation` and `openapiOperation` map explicitly to
 `AUTHSERVICE_ROOT_OPERATION` and `AUTHSERVICE_OPENAPI_OPERATION` in the generated ConfigMap. Other
-non-secret environment values, including the fingerprint key version, come from the `environment`
-map. Database credentials, the optional Logfire token, and the required business-operation
-fingerprint secret use `secretEnvironment` references to existing Kubernetes Secret names and
-keys. Never place secret values in `environment`, a ConfigMap, a committed values file, or
-rendered documentation.
+non-secret environment values come from the `environment` map. Database credentials and the
+optional Logfire token use `secretEnvironment` references to existing Kubernetes Secret names and
+keys. Never place secret values in `environment`, a ConfigMap, a committed values file, or rendered
+documentation.
 
-The service-owned `oauth2` values supply the exact issuer and access-token TTL. The focused
+The service-owned `token` values supply the exact issuer and access-token TTL. The focused
 `jwtSigningKey` values supply the non-secret key ID, mounted path, existing Secret name, and Secret
 data key. The ConfigMap receives only issuer, TTL, key ID, and path. The Deployment projects only
 the selected private-key entry and mounts it as one read-only file at the same path published as
@@ -61,8 +60,8 @@ The current chart contains no outbound target, outbound credential, token storag
 If a future implemented use case introduces a real target, its base URL and request timeout use
 the existing non-secret `environment` or explicit ConfigMap convention. Credential and token-store
 inputs remain service-owned and are wired only when the use case needs them; secrets use
-`secretEnvironment` and existing Kubernetes Secret references. `PokerLostRetryPolicy` values never
-become deployment settings. Authorization headers and tokens never become chart values, ConfigMap
+`secretEnvironment` and existing Kubernetes Secret references. `PokerlostRetryPolicy` values never
+become deployment settings. Authentication material never becomes chart values, ConfigMap
 data, logs, or rendered manifests. See `docs/architecture/inter-service-clients.md` for the
 ownership and lifecycle pattern.
 

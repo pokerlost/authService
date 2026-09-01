@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, FastAPI, status
-from pypokerlost.types import APIOperation
+from pypokerlost.types import PokerlostOperation
 
 from api.schemas.responses import ApplicationResponse, OpenAPIResponse
 
@@ -11,7 +11,7 @@ from api.schemas.responses import ApplicationResponse, OpenAPIResponse
 def create_openapi_document_router(
     *,
     application: FastAPI,
-    operation: APIOperation,
+    operation: PokerlostOperation,
 ) -> APIRouter:
     """Create the publication router from validated runtime settings."""
     router = APIRouter(tags=["openapi"])

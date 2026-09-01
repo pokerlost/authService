@@ -1,90 +1,49 @@
-# ApplicationResponse
+# PokerlostResponse
 
-This page defines the four-field response envelope used by every public operation in authService,
-including the OAuth2 token operation.
+Every normal authService response uses the canonical five-field
+`PokerlostResponse[ResultT]` JSON envelope.
 
 ## Success
-
-A minimal successful response is:
 
 ```json
 {
   "ok": true,
   "result": null,
   "error": null,
-  "error_message": null
+  "error_message": null,
+  "retry_after": null
 }
 ```
 
-`result` contains the operation's typed response when one exists. It may also be `null`; success is
-defined by `ok: true`, not by a non-null result. Both error fields must be `null` on success.
+`result` is the typed operation result or `null`. Success forbids all failure metadata.
 
 ## Failure
-
-An unexpected internal failure has this public shape:
 
 ```json
 {
   "ok": false,
   "result": null,
-  "error": "AUTHSERVICE_INTERNAL_ERROR",
-  "error_message": "Internal server error"
+  "error": "AUTHSERVICE_TEMPORARILY_UNAVAILABLE",
+  "error_message": "The token service is temporarily unavailable.",
+  "retry_after": 1.5
 }
 ```
 
-On failure, `result` must be `null`, while `error` and `error_message` must both be non-null strings.
-The error code is stable machine-readable metadata; the message is safe for a caller.
+Failure requires a stable non-empty `error`, forbids a result, and may include a sanitized message.
+`retry_after`, when present, is a finite non-negative number of seconds. It is body data only and
+is never mirrored to an HTTP header. Success requires it to be `null`.
 
-## Fields and invariants
+The model is strict, immutable, closed to extra fields, and rejects impossible field combinations
+through validation rather than assertions. It is the API wire envelope, not an application-layer
+Result abstraction.
 
-| Field | Type | Required | Rule |
-| --- | --- | --- | --- |
-| `ok` | `bool` | yes | Selects the success or failure invariant. |
-| `result` | operation result or `null` | no | Defaults to `null`; must be `null` on failure. |
-| `error` | `str` or `null` | no | Defaults to `null`; required on failure and forbidden on success. |
-| `error_message` | `str` or `null` | no | Defaults to `null`; required on failure and forbidden on success. |
+## Token result
 
-The public model is strict, immutable, and closed to extra fields. The wire envelope has exactly
-these four properties; do not extend it with transport or observability metadata.
+`POST /getToken` returns `PokerlostToken` inside `result`. The token has `access_token`, optional
+`refresh_token`, positive `expires_in`, exact immutable `scopes`, and logical `audience`. It has no
+Bearer/token-type or HTTP-header representation. The current implemented service flow always
+returns `refresh_token: null`.
 
-## OAuth2 token result
-
-`POST /oauth.token` preserves `application/x-www-form-urlencoded` and HTTP Basic request
-mechanics, but its response is not an envelope exception. A successful service-token response is:
-
-```json
-{
-  "ok": true,
-  "result": {
-    "access_token": "<secret>",
-    "token_type": "bearer",
-    "expires_in": 600,
-    "scope": "auth.internal.issueLoginGrant auth.internal.provisionHuman"
-  },
-  "error": null,
-  "error_message": null
-}
-```
-
-The access token exists only at `result.access_token`. A handled token failure uses the same
-four-field `ApplicationResponse[None]` shape as every other operation, never a token-specific error
-object or FastAPI validation details. Token success and failure responses retain the cache-control
-and authentication headers documented in `docs/api/errors.md`.
-
-There is no raw OAuth2 token response, token-specific error envelope, `error_description`, or
-FastAPI `detail` body for handled token errors. The generated `oauth.token` method decodes the
-result into the shared `pypokerlost.contracts.authorization.OAuthTokenResponse`. A consuming
-service decides when to call that method and owns any credential, token storage, or refresh
-orchestration behind its application port and adapter.
-
-## SDK behavior
-
-The `pypokerlost` client interprets the envelope and HTTP status together:
-
-- a valid failed envelope raises `PokerlostAPIError`, including for a non-2xx response;
-- a successful envelope returned with a non-2xx status raises `PokerlostProtocolError`;
-- invalid JSON, an invalid envelope, or an invalid typed result raises `ClientDecodeError`.
-
-Servers therefore return a success envelope with a 2xx status and a failure envelope with the
-corresponding non-2xx status. The concrete mappings and safe messages are documented in
-`docs/api/errors.md`.
+The client decodes this envelope for both 2xx and non-2xx statuses. A failed envelope becomes a
+canonical SDK exception; malformed JSON or an invalid envelope becomes a protocol error. Neither
+the server nor SDK exceptions retain raw request or response bodies.

@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, model_validator
 from pydantic_core import PydanticCustomError
-from pypokerlost.contracts.authorization import (
+from pypokerlost.types import (
     AuthorizationRole,
     PrincipalStatus,
     PrincipalType,

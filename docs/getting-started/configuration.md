@@ -17,10 +17,10 @@ For example, `database.url` maps to `AUTHSERVICE_DATABASE__URL`. Names are case-
 
 | Field | Environment variable | Required | Example |
 | --- | --- | --- | --- |
-| `root_operation` | `AUTHSERVICE_ROOT_OPERATION` | Yes | `auth.getRoot` |
-| `openapi_operation` | `AUTHSERVICE_OPENAPI_OPERATION` | Yes | `openapi.get` |
+| `root_operation` | `AUTHSERVICE_ROOT_OPERATION` | Yes | `getRoot` |
+| `openapi_operation` | `AUTHSERVICE_OPENAPI_OPERATION` | Yes | `getOpenApi` |
 
-Both fields use `pypokerlost.types.APIOperation`, so invalid startup values fail validation. The
+Both fields use `pypokerlost.types.PokerlostOperation`, so invalid startup values fail validation. The
 root operation controls only the operation ID for `GET /`; the HTTP path remains `/`. The OpenAPI
 operation controls both its operation ID and its `"/" + operation_id` path. Business operation IDs
 remain source-defined stable contracts rather than environment settings.
@@ -44,12 +44,12 @@ Production configuration fails at startup unless Logfire and remote delivery are
 | `host` | `AUTHSERVICE_HTTP__HOST` | Local HTTP bind address. |
 | `port` | `AUTHSERVICE_HTTP__PORT` | Local HTTP port from `1` through `65535`. |
 
-## `oauth2`
+## `token`
 
 | Field | Environment variable | Purpose |
 | --- | --- | --- |
-| `issuer` | `AUTHSERVICE_OAUTH2__ISSUER` | Required exact, non-empty service-token issuer. |
-| `access_token_ttl_seconds` | `AUTHSERVICE_OAUTH2__ACCESS_TOKEN_TTL_SECONDS` | Service access-token lifetime from `60` through `3600` seconds. |
+| `issuer` | `AUTHSERVICE_TOKEN__ISSUER` | Required exact, non-empty service-token issuer. |
+| `access_token_ttl_seconds` | `AUTHSERVICE_TOKEN__ACCESS_TOKEN_TTL_SECONDS` | Service access-token lifetime from `60` through `3600` seconds. |
 
 The example TTL is `600` seconds. The issuer is copied exactly into the JWT `iss` claim and is not
 silently normalized.
@@ -89,24 +89,8 @@ The database URL must include a username, password, host, and database. It is tr
 | `minimum_level` | `AUTHSERVICE_LOGFIRE__MINIMUM_LEVEL` | Minimum recorded level. |
 | `token` | `AUTHSERVICE_LOGFIRE__TOKEN` | Optional write token, required when remote delivery is enabled. |
 
-## `business_operation_fingerprint`
-
-| Field | Environment variable | Default | Secret? |
-| --- | --- | --- | --- |
-| `secret` | `AUTHSERVICE_BUSINESS_OPERATION_FINGERPRINT__SECRET` | Required by authService | Yes |
-| `key_version` | `AUTHSERVICE_BUSINESS_OPERATION_FINGERPRINT__KEY_VERSION` | `1` | No |
-
-The secret must contain at least 32 UTF-8 bytes. authService calls `require_secret()` during
-`Settings` validation, so a missing or short secret fails startup. Kubernetes supplies the secret
-only through a Secret reference; the key version belongs in the ConfigMap.
-
-The active-key rotation policy is intentionally simple: do not rotate the fingerprint key until
-every retained idempotency record created with the old key has expired or been deleted.
-The persisted digest and key version remain together, and a candidate with another version is a
-conflict. Removing an old secret does not preserve replay comparison for records created with it.
-
-Keep the signing private key, fingerprint secret, Logfire token, and database URL outside source
-control. Kubernetes mounts the private key from a Secret and supplies the other values through
+Keep the signing private key, Logfire token, and database URL outside source control. Kubernetes
+mounts the private key from a Secret and supplies the other values through
 Secret references rather than the chart ConfigMap; see
 `docs/development/containers-and-kubernetes.md`.
 
@@ -119,6 +103,6 @@ request timeout are deployment configuration. Token credentials, storage, refres
 scopes, and audience remain service-owned and are added only when the implemented use case needs
 them.
 
-Do not expose `PokerLostRetryPolicy` values as settings; its transport algorithm is fixed by the
+Do not expose `PokerlostRetryPolicy` values as settings; its transport algorithm is fixed by the
 SDK. Do not automatically add authService configuration to every service. The complete ownership
 pattern is in `docs/architecture/inter-service-clients.md`.

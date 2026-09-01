@@ -5,80 +5,67 @@ SERVICE_SLUG: authservice
 
 ## Purpose
 
-OAuth2 authorization server and token authority for PokerLost.
+Pokerlost token authority and authorization-state owner.
+
+The public wire contract is the private Pokerlost JSON protocol over HTTPS. It is not an OAuth2,
+Bearer, Basic, or header-authentication protocol. Existing OAuth-named persistence objects remain
+internal implementation details.
 
 ## Responsibilities
 
 - Own authorization principals and principal types.
-- Own OAuth2 clients, roles, scopes, role grants, direct service grants and audience grants.
-- Own one-time login grants.
-- Issue service access tokens; human access and refresh-token flows remain later responsibilities.
-- Own human sessions, refresh-token families and revocation state.
+- Own clients, roles, scopes, role grants, direct service grants and audience grants.
+- Own one-time login grants as a future business stage.
+- Issue short-lived service access tokens from body-supplied client credentials.
+- Own future human sessions, refresh-token families and revocation state.
 - Own service credentials and JWT signing metadata; JWKS publication is deferred.
-- Provide idempotent authorization-state operations used by accountsService.
+- Provide future idempotent authorization-state operations used by accountsService.
 
 ## Service-specific rules
 
 - Canonical access categories are `public`, `user`, `support`, `master` and `auto`.
-- `public` means unauthenticated access; it is not a persisted role, principal, scope or token claim.
-- Human principals use exactly `user`, `support` or `master`.
-- Service principals use exactly `auto`.
-- Password hashes, Argon2id policy, password verification, usernames, nicknames and account lifecycle belong to accountsService.
-- Runtime authorization uses explicit OAuth2 scopes, never role checks.
-- Roles have no implicit inheritance; each role owns a complete explicit scope bundle.
-- `master` is not a global bypass.
-- `auto` does not imply access to every internal operation; service access requires direct scope and audience grants.
-- Protected FastAPI operations declare scopes through `Security(..., scopes=[...])`.
-- PokerLost inter-service calls use generated `pypokerlost` clients and response types; no direct HTTP fallback is allowed.
-- Downstream services validate short-lived JWT access tokens locally and do not call authService per request.
-- `/oauth.token` preserves OAuth2 form and HTTP Basic request mechanics, while every success and
-  handled failure uses the universal PokerLost `ApplicationResponse` envelope.
-- Service principals use `client_credentials`, receive no human session and receive no refresh token.
-- Service-client authentication uses HTTP Basic only; body `client_id` and `client_secret` fields are rejected.
-- The resource indicator is exactly `urn:pokerlost:service:<serviceIdentity>` and becomes the
-  unchanged JWT `aud` value.
-- Requested service scopes and resources must be granted independently to both the service
-  principal and its exact bound OAuth client.
-- Generated OAuth client secrets are stored only as dedicated domain-separated SHA-256 digests
-  and are shown once by the operator bootstrap command.
-- JWT signing uses RS256 with mandatory `kid`; the private key is loaded from a mounted Secret file.
-- AUTH-02 publishes no JWKS and retains no signing-key history; those capabilities remain deferred.
-- Service consumers own token acquisition, storage and refresh orchestration through application
-  ports and focused adapters over the generated `oauth.token` SDK method.
-- The SDK owns HTTP transport, shared wire contracts and `PokerLostRetryPolicy`; retry remains an
-  explicit per-call choice and never replays `401` or `403` automatically.
-- authService does not instantiate an outbound client to itself or to accountsService during token
-  issuance, refresh, or credential validation.
+- `public` means unauthenticated access; it is not a persisted role, principal, scope or claim.
+- Human principals use exactly `user`, `support` or `master`; service principals use `auto`.
+- Password hashes, password verification, usernames, nicknames and account lifecycle belong to
+  accountsService.
+- Runtime authorization uses exact Pokerlost scopes, never role checks or wildcard grants.
+- Roles have no implicit inheritance; `master` is not a bypass and `auto` grants no scopes.
+- Downstream services validate short-lived JWT access tokens locally and do not call authService
+  for each protected request.
+- Pokerlost inter-service calls use `pypokerlost`; no direct HTTP fallback is allowed.
+- authService does not instantiate a client to itself or accountsService.
+- Existing applied migrations are immutable; persisted scope spelling changes use forward
+  migrations.
 
 ## Current service-client profile
 
-- `authservice bootstrap-service-client` is the only client bootstrap boundary.
-- The bootstrap transaction creates one active `service` principal with role `auto`, one active
-  confidential client bound to it, explicit `client_credentials` permission, matching direct and
-  client scope grants, matching service and client audience grants, and one active secret digest.
-- `POST /oauth.token` executes only `grant_type=client_credentials`.
-- The request is `application/x-www-form-urlencoded` with exactly one `grant_type`, `scope`, and
-  `resource`, plus an HTTP Basic `Authorization` header.
-- Success returns `ApplicationResponse[OAuthTokenResponse]`; handled failure returns
-  `ApplicationResponse[None]`. The access token exists only at `result.access_token`.
-- A service token is short-lived, contains service-only claims, uses the exact requested resource
-  as `aud`, and is not persisted.
-- The flow does not create a session, refresh token, account claim, or role-derived scope grant.
+- `authservice bootstrap-service-client` is the operator bootstrap boundary.
+- Bootstrap creates one active service principal, one bound confidential client, exact direct and
+  client scope grants, exact service and client audience grants, and one digest-only credential.
+- `POST /getToken` is the only implemented business operation.
+- Its request is `PokerlostRequest[GetTokenRequest]` JSON with `client_id`, `client_secret`, exact
+  `scopes`, and logical service `audience` inside `payload`.
+- Authentication material is accepted only in the JSON body. No caller-supplied authentication
+  header, cookie, query parameter, form body, or token type prefix is accepted.
+- The logical audience, such as `authService`, is mapped at the application boundary to the
+  existing internal `urn:pokerlost:service:<audience>` grant representation.
+- Success returns `PokerlostResponse[PokerlostToken]`; failures return
+  `PokerlostResponse[None]`. Retry delay, when applicable, is represented only by
+  `PokerlostResponse.retry_after`.
+- A service token is short-lived, contains service-only claims, and is not persisted.
+- The current flow creates no human session or refresh token.
 
 ## Operation identifiers
 
-- PokerLost operation identifiers use `namespace.someOperation`, where both the stable namespace and operation use lowerCamelCase.
-- Operation paths are exactly the operation identifier prefixed with `/`.
-- Reserved identifiers for later authorization responsibilities are `principals.provisionHuman`,
-  `principals.setStatus`, `principals.assignRole`, and `loginGrants.issue`; they are not part of the
-  current HTTP surface.
-- OAuth2 scope identifiers are separate dot-delimited lowerCamelCase values such as
-  `auth.internal.provisionHuman`.
+- Operation identifiers match `^[a-z][A-Za-z0-9]*$` and paths are `/<operationId>`.
+- Current business operation: `getToken` at `POST /getToken`.
+- Reserved future SDK operations are `refreshToken`, `getJwks`, `provisionHuman`,
+  `setPrincipalStatus`, `assignPrincipalRole`, and `issueLoginGrant`; they are not current server
+  endpoints.
+- Scope identifiers remain separate dotted lowerCamelCase values, for example
+  `auth.internal.provisionHuman` and `auth.internal.assignPrincipalRole`.
 
-## Protocol vocabulary
+## Non-goals of the current stage
 
-- Human login grant: `urn:pokerlost:params:oauth:grant-type:login-grant`.
-- Refresh: `refresh_token`.
-- Service authentication: `client_credentials`, the only executable grant in the current service.
-- Human login-grant exchange, refresh, password, implicit, device, OIDC and social-login grants
-  are not implemented.
+Human login-grant exchange, refresh tokens, sessions, logout, JWKS publication, principal HTTP
+operations, retained signing keys, and signing-key rotation are not implemented.

@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
-from pypokerlost.contracts.authorization import (
+from pypokerlost.types import (
     AuthorizationRole,
+    PokerlostScope,
     PrincipalStatus,
     PrincipalType,
+    parse_pokerlost_scope_string,
 )
-from pypokerlost.types import OAuthScope, parse_oauth_scope_string
 from sqlalchemy import and_, func, literal, select
 from sqlalchemy import cast as sql_cast
 from sqlalchemy.dialects.postgresql import JSONB, aggregate_order_by
@@ -235,8 +236,8 @@ def _credential_from_json(value: dict[str, Any]) -> OAuthClientCredential:
     )
 
 
-def _parse_scope_values(values: list[str]) -> frozenset[OAuthScope]:
+def _parse_scope_values(values: list[str]) -> frozenset[PokerlostScope]:
     """Validate persisted scope identifiers through the shared canonical parser."""
     if not values:
         return frozenset()
-    return frozenset(parse_oauth_scope_string(" ".join(values)))
+    return frozenset(parse_pokerlost_scope_string(" ".join(values)))

@@ -1,4 +1,4 @@
-"""OAuth2 token issuance settings."""
+"""Pokerlost token issuance settings."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from pydantic import Field, field_validator
 from .base import SettingsModel
 
 
-class OAuth2Settings(SettingsModel):
-    """Required OAuth2 issuer and short-lived access-token policy."""
+class TokenSettings(SettingsModel):
+    """Required issuer and short-lived access-token policy."""
 
     issuer: str = Field(
         min_length=1,
@@ -27,7 +27,5 @@ class OAuth2Settings(SettingsModel):
     def validate_issuer(cls, issuer: str) -> str:
         """Reject blank or padded issuers without normalizing the claim value."""
         if not issuer.strip() or issuer != issuer.strip():
-            raise ValueError(
-                "OAuth2 issuer must be non-empty and must not contain outer whitespace"
-            )
+            raise ValueError("Token issuer must be non-empty and have no outer whitespace")
         return issuer

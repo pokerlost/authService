@@ -1,6 +1,6 @@
 serviceIdentity: "authService"
-rootOperation: auth.getRoot
-openapiOperation: openapi.get
+rootOperation: getRoot
+openapiOperation: getOpenApi
 
 replicaCount: 2
 
@@ -12,7 +12,7 @@ image:
 http:
   port: 8000
 
-oauth2:
+token:
   issuer: urn:pokerlost:authService
   accessTokenTtlSeconds: 600
 
@@ -36,13 +36,8 @@ environment:
   AUTHSERVICE_DATABASE__MAX_OVERFLOW: "10"
   AUTHSERVICE_DATABASE__POOL_TIMEOUT_SECONDS: "10"
   AUTHSERVICE_DATABASE__COMMAND_TIMEOUT_SECONDS: "30"
-  AUTHSERVICE_BUSINESS_OPERATION_FINGERPRINT__KEY_VERSION: "1"
 
 secretEnvironment:
-  AUTHSERVICE_BUSINESS_OPERATION_FINGERPRINT__SECRET:
-    enabled: true
-    name: authservice-runtime
-    key: business-operation-fingerprint-secret
   AUTHSERVICE_LOGFIRE__TOKEN:
     enabled: true
     name: authservice-logfire

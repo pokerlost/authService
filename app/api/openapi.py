@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 from api.schemas.json import JSONValue
-from service import SERVICE_NAME
 
 type OpenAPISchema = dict[str, JSONValue]
 
@@ -27,6 +26,5 @@ class PokerlostApplication(FastAPI):
                     routes=self.routes,
                 ),
             )
-            schema["x-pokerlost-service"] = {"id": SERVICE_NAME}
             self.openapi_schema = schema
         return cast(OpenAPISchema, self.openapi_schema)

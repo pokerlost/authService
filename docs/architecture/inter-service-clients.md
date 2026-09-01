@@ -14,7 +14,7 @@ The SDK and consuming service own different responsibilities:
 | Shared OAuth scope, token response, access-token claims, authorization context, and cross-service authorization enums | `pypokerlost` |
 | Connection, timeout, retryable HTTP classification, full-jitter backoff, and `Retry-After` execution | `pypokerlost.client.retry.PokerLostRetryPolicy` |
 | Credentials, requested scopes, audience, token acquisition timing, storage, refresh, and invalidation | The consuming service |
-| Business replay safety, operation fingerprint, workflow state, and reconciliation | The consuming service and target operation contract |
+| Business replay safety, workflow state, and reconciliation | The consuming service and target operation contract |
 
 `pypokerlost` knows the `oauth.token` wire shape and can call its generated method. It does not
 decide whether this service needs a token or manage the token lifecycle.
@@ -189,7 +189,7 @@ without a retryable status. After exhaustion the normal final SDK exception is p
 An explicit policy does not make a mutation replay-safe. The application may opt in only when the
 target contract guarantees replay safety. Every attempt must reuse the same
 `business_operation_id`, semantic payload, and target operation. The SDK never creates or changes
-that identifier, idempotency key, fingerprint, or workflow state.
+that identifier, idempotency key, or workflow state.
 
 ## Transaction and privacy rules
 
@@ -198,6 +198,6 @@ Do not keep a PostgreSQL transaction open during token acquisition, a target cal
 before remote I/O and use the existing workflow or reconciliation seam for ambiguous outcomes.
 
 Never log or expose client secrets, passwords, password hashes, private keys, access or refresh
-tokens, `Authorization` values, sensitive bodies, fingerprint inputs, or fingerprint digests.
+tokens, `Authorization` values, or sensitive bodies.
 Canonical SDK exceptions and shared token models keep secret-bearing values out of representations
 and validation errors.

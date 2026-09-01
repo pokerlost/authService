@@ -6,7 +6,7 @@ import jwt
 from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from pypokerlost.contracts.authorization import AccessTokenClaims
+from pypokerlost.types import PokerlostAccessTokenClaims
 
 from application.ports import ServiceAccessTokenSigner
 from configuration import JWTSettings
@@ -45,7 +45,7 @@ class PyJWTServiceAccessTokenSigner(ServiceAccessTokenSigner):
         self._key = private_key
         self._key_id = settings.key_id
 
-    def sign(self, claims: AccessTokenClaims) -> str:
+    def sign(self, claims: PokerlostAccessTokenClaims) -> str:
         """Return an RS256 compact JWT containing only the approved service claims."""
         payload = claims.model_dump(mode="json", by_alias=True, exclude_none=True)
         return jwt.encode(

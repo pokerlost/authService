@@ -1,8 +1,8 @@
 # authService
 
-`authService` is the PokerLost OAuth2 authorization server. It provides PostgreSQL-backed service
-principals and confidential clients, operator bootstrap, and short-lived RS256 access tokens for
-the OAuth2 `client_credentials` grant.
+`authService` is the Pokerlost token authority. It provides PostgreSQL-backed service principals
+and confidential clients, operator bootstrap, and short-lived RS256 access tokens through the
+private body-only Pokerlost JSON protocol over HTTPS.
 
 Read `docs/index.md` for the complete guide and `AGENTS.md` for normative engineering rules.
 Python 3.14 or newer is required.
@@ -34,13 +34,13 @@ make run
 
 | method | path | operation_id | response_model |
 | --- | --- | --- | --- |
-| `GET` | `/` | `auth.getRoot` | `RootResponse` |
-| `GET` | `/openapi.get` | `openapi.get` | `OpenAPIResponse` |
-| `POST` | `/oauth.token` | `oauth.token` | `ApplicationResponse[OAuthTokenResponse]` |
+| `GET` | `/` | `getRoot` | `PokerlostResponse[None]` |
+| `GET` | `/getOpenApi` | `getOpenApi` | `PokerlostResponse[dict[str, JSONValue]]` |
+| `POST` | `/getToken` | `getToken` | `PokerlostResponse[PokerlostToken]` |
 
-The base identifiers shown are the `.env.example` values. Every response uses
-`ApplicationResponse`. The OAuth2 token operation retains its form and HTTP Basic request
-mechanics, while its access token is returned only as `result.access_token`. See
+The base identifiers shown are the `.env.example` values. `getToken` receives client credentials,
+exact scopes, and the logical target audience only in `PokerlostRequest.payload`. It does not
+accept authentication headers, cookies, query parameters, or form data. See
 `docs/api/public-surface.md`.
 
 ## Bootstrap a service client
@@ -53,7 +53,7 @@ authservice bootstrap-service-client \
   --service-slug accountsservice \
   --scope auth.internal.provisionHuman \
   --scope auth.internal.setPrincipalStatus \
-  --scope auth.internal.assignRole \
+  --scope auth.internal.assignPrincipalRole \
   --scope auth.internal.issueLoginGrant \
   --resource urn:pokerlost:service:authService
 ```
@@ -61,22 +61,22 @@ authservice bootstrap-service-client \
 The command prints the generated client ID and raw client secret only after commit. Store the raw
 secret immediately; authService persists only its digest and cannot recover it later.
 
-Service consumers own token acquisition through an application port and a focused adapter that
-calls the generated `oauth.token` SDK method. The SDK owns transport and canonical retry only:
+Service consumers use the generated `GetToken` method through
+`PokerlostAuthorizationMiddleware`. The SDK owns body authorization and canonical retry:
 
 ```python
-from pypokerlost.client.request import RequestOptions
-from pypokerlost.client.retry import PokerLostRetryPolicy
+from pypokerlost.client import PokerlostRequestOptions
+from pypokerlost.middleware import PokerlostAuthorizationMiddleware, PokerlostRetryPolicy
 ```
 
 Retry stays off unless a replay-safe call supplies
-`RequestOptions(retry=PokerLostRetryPolicy())`. Token storage and refresh remain consumer-owned;
-authService itself creates no outbound client to accountsService or to itself.
+`PokerlostRequestOptions(retry_policy=PokerlostRetryPolicy())`. authService itself creates no
+outbound client to accountsService or to itself.
 
-The SDK source defines transport, shared authorization contracts, generic request headers, and the
-canonical explicit per-call retry policy. A consuming service owns credentials and token
-orchestration behind application ports and adapters. The pristine service creates no target
-client, credentials, token storage, or retry settings; extension guidance lives in
+The SDK source defines transport, the two JSON request envelopes, shared authorization values,
+middleware, and the canonical explicit per-call retry policy. Authentication material and
+`retry_after` never use HTTP headers. The pristine service creates no target client, credentials,
+token storage, or retry settings; extension guidance lives in
 `docs/architecture/inter-service-clients.md`.
 
 ## Development and deployment

@@ -4,67 +4,65 @@ This page is the authoritative manifest of HTTP endpoints currently exposed by `
 
 ## Endpoint manifest
 
-| Method and path | `operation_id` | Request | `response_model` | Published status and error responses |
-| --- | --- | --- | --- | --- |
-| `GET /` | `auth.getRoot` | No parameters or body | `RootResponse` (`ApplicationResponse[None]`) | `200`: `RootResponse`; `500`: `ApplicationResponse[None]` |
-| `GET /openapi.get` | `openapi.get` | No parameters or body | `OpenAPIResponse` (`ApplicationResponse[dict[str, JSONValue]]`) | `200`: `OpenAPIResponse`; `500`: `ApplicationResponse[None]` |
-| `POST /oauth.token` | `oauth.token` | `application/x-www-form-urlencoded` `OAuthTokenRequest` and HTTP Basic | `ApplicationResponse[OAuthTokenResponse]` | `200`: `ApplicationResponse[OAuthTokenResponse]`; `400`, `401`, `500`, `503`: `ApplicationResponse[None]` |
+| Method and path | `operation_id` | Request | `response_model` |
+| --- | --- | --- | --- |
+| `GET /` | `getRoot` | No parameters or body | `PokerlostResponse[None]` |
+| `GET /getOpenApi` | `getOpenApi` | No parameters or body | `PokerlostResponse[dict[str, JSONValue]]` |
+| `POST /getToken` | `getToken` | JSON `PokerlostRequest[GetTokenRequest]` | `PokerlostResponse[PokerlostToken]` |
 
-The table shows the `.env.example` values. The root path remains `/` when
-`AUTHSERVICE_ROOT_OPERATION` changes. The OpenAPI path changes with
-`AUTHSERVICE_OPENAPI_OPERATION` and is always `"/" + operation_id`.
+The base identifiers shown are the `.env.example` values. Root, OpenAPI publication, and existing
+probe routes are public infrastructure exceptions. Every business operation uses `POST` at the
+path `/<operationId>`.
 
-Both base success models use the exact four-field `ApplicationResponse` envelope documented in
-`docs/api/application-response.md`. The OpenAPI operation returns the generated document in
-`result`; the root operation returns this exact body:
+## `getToken`
+
+`POST /getToken` accepts this private Pokerlost JSON request over HTTPS:
+
+```json
+{
+  "payload": {
+    "client_id": "5dfd4999-ab70-4d6c-b31d-ef855fa98320",
+    "client_secret": "<secret>",
+    "scopes": ["auth.internal.provisionHuman"],
+    "audience": "authService"
+  }
+}
+```
+
+No authentication header, cookie, query parameter, form encoding, grant type, token type, or
+caller-supplied generic header is part of the protocol. `getToken` is public at the transport
+level and therefore has no `authorization` field.
+
+The client ID must be a canonical lowercase hyphenated UUID. The logical audience is one exact
+service identifier and is mapped internally to the existing persisted service resource. Every
+requested scope must exist and be granted independently to both the service principal and bound
+client. Role `auto` grants no scope.
+
+A successful response is:
 
 ```json
 {
   "ok": true,
-  "result": null,
+  "result": {
+    "access_token": "<secret>",
+    "refresh_token": null,
+    "expires_in": 600,
+    "scopes": ["auth.internal.provisionHuman"],
+    "audience": "authService"
+  },
   "error": null,
-  "error_message": null
+  "error_message": null,
+  "retry_after": null
 }
 ```
 
-The base route decorators explicitly publish only the `500` error model shown above. Global API
-handlers also envelope-normalize unmatched paths, unsupported methods, validation failures, and
-runtime exceptions as described in `docs/api/errors.md`; those are not additional route
-declarations.
+The current service-client stage issues no refresh token. Failures use
+`PokerlostResponse[None]`; any retry delay exists only in `retry_after`, never an HTTP header.
+Secrets and submitted bodies are excluded from representations, validation messages, logs, and
+traces.
 
-## OAuth2 token operation
+## Deferred operations
 
-`POST /oauth.token` accepts exactly one `grant_type=client_credentials`, one non-empty
-space-delimited `scope`, and one exact resource indicator matching
-`urn:pokerlost:service:<serviceIdentity>`. Confidential-client credentials are accepted only as
-HTTP Basic authentication. Body `client_id` or `client_secret` parameters are invalid.
-
-The client ID is a canonical lowercase hyphenated UUID. Requested scopes are exact,
-case-sensitive `OAuthScope` values with dot-delimited lowerCamelCase segments and no duplicates. A
-successful request requires every scope in both the service principal's direct grants and the
-bound OAuth client's grants, and requires the exact resource in both audience grant sets.
-
-Success contains `access_token`, `token_type: "bearer"`, configured `expires_in`, and the
-deterministically sorted exact scope string inside `ApplicationResponse.result`. The access token
-exists only as `result.access_token`, and the result contains no refresh token. Handled failures
-use `ApplicationResponse[None]` with stable `AUTHSERVICE_*` codes and safe messages. All token
-success and failure responses include `Cache-Control: no-store` and `Pragma: no-cache`;
-`AUTHSERVICE_INVALID_CLIENT` also includes `WWW-Authenticate: Basic`. Form, security, success, and
-failure schemas are preserved in the generated OpenAPI document.
-
-## Probe meaning
-
-`GET /` proves that the process can serve the minimal application response. It does not request a
-database dependency, execute a PostgreSQL query, or prove database readiness. Deployment probes use
-this application-availability endpoint with that limited meaning.
-
-The configured OpenAPI operation publishes the current FastAPI schema as described in
-`docs/api/openapi-and-sdk.md`. Neither base endpoint contains business behavior.
-
-## Maintaining the manifest
-
-A service change must add every new or changed public method here with its exact path,
-`operation_id`, request model or body omission, response model, and published status/error models.
-The method must also follow `docs/api/operation-contract.md`. Remove
-manifest entries when their routes are removed; do not document planned endpoints as current
-behavior.
+`refreshToken`, `getJwks`, `provisionHuman`, `setPrincipalStatus`, `assignPrincipalRole`, and
+`issueLoginGrant` may exist as future-facing SDK stubs, but authService does not currently expose
+those endpoints.

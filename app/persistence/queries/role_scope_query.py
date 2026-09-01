@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Collection
 
-from pypokerlost.contracts.authorization import AuthorizationRole, PrincipalType
-from pypokerlost.types import OAuthScope, parse_oauth_scope_string
+from pypokerlost.types import (
+    AuthorizationRole,
+    PokerlostScope,
+    PrincipalType,
+    parse_pokerlost_scope_string,
+)
 from sqlalchemy import select
 
 from application.errors import RoleNotFoundError, ScopeNotFoundError
@@ -36,7 +40,7 @@ class SQLAlchemyRoleScopeQuery(SQLAlchemyRepository, RoleScopeQuery):
 
     async def get_scopes_by_exact_names(
         self,
-        names: Collection[OAuthScope],
+        names: Collection[PokerlostScope],
     ) -> tuple[OAuthScopeDefinition, ...]:
         """Return the exact requested catalog scopes or fail closed when one is absent."""
         requested_names = frozenset(names)
@@ -55,14 +59,14 @@ class SQLAlchemyRoleScopeQuery(SQLAlchemyRepository, RoleScopeQuery):
     async def resolve_allowed_scope_names(
         self,
         role: AuthorizationRole,
-    ) -> frozenset[OAuthScope]:
+    ) -> frozenset[PokerlostScope]:
         """Resolve all explicit grant rows for the exact persisted role."""
         return await self._resolve_scope_names(role, default_only=False)
 
     async def resolve_default_scope_names(
         self,
         role: AuthorizationRole,
-    ) -> frozenset[OAuthScope]:
+    ) -> frozenset[PokerlostScope]:
         """Resolve only explicit default grant rows for the exact persisted role."""
         return await self._resolve_scope_names(role, default_only=True)
 
@@ -80,7 +84,7 @@ class SQLAlchemyRoleScopeQuery(SQLAlchemyRepository, RoleScopeQuery):
         role: AuthorizationRole,
         *,
         default_only: bool,
-    ) -> frozenset[OAuthScope]:
+    ) -> frozenset[PokerlostScope]:
         role_model = await self._get_role_model(role)
         statement = (
             select(OAuthScopeModel.name)
@@ -96,11 +100,11 @@ class SQLAlchemyRoleScopeQuery(SQLAlchemyRepository, RoleScopeQuery):
         names = result.all()
         if not names:
             return frozenset()
-        return frozenset(parse_oauth_scope_string(" ".join(names)))
+        return frozenset(parse_pokerlost_scope_string(" ".join(names)))
 
     @staticmethod
     def _scope_from_model(model: OAuthScopeModel) -> OAuthScopeDefinition:
-        (name,) = parse_oauth_scope_string(model.name)
+        (name,) = parse_pokerlost_scope_string(model.name)
         return OAuthScopeDefinition(
             scope_id=model.id,
             name=name,

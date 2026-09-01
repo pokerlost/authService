@@ -7,7 +7,6 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 from fastapi import FastAPI
 
-from application.idempotency import BusinessOperationFingerprinter
 from configuration import Settings
 from observability import instrument_database
 from persistence.database import create_database_engine, create_session_factory
@@ -28,11 +27,6 @@ def create_lifespan(settings: Settings) -> ApplicationLifespan:
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         service_access_token_signer = PyJWTServiceAccessTokenSigner(settings.jwt)
-        fingerprint_settings = settings.business_operation_fingerprint
-        business_operation_fingerprinter = BusinessOperationFingerprinter(
-            fingerprint_settings.require_secret(),
-            key_version=fingerprint_settings.key_version,
-        )
         engine = create_database_engine(
             settings.database,
             application_name=SERVICE_NAME,
@@ -41,7 +35,6 @@ def create_lifespan(settings: Settings) -> ApplicationLifespan:
         application.state.resources = ApplicationResources(
             engine=engine,
             session_factory=create_session_factory(engine),
-            business_operation_fingerprinter=business_operation_fingerprinter,
             service_access_token_signer=service_access_token_signer,
         )
         application.state.settings = settings

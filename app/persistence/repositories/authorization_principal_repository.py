@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from typing import Never
 from uuid import UUID
 
-from pypokerlost.contracts.authorization import (
+from pypokerlost.types import (
     AuthorizationRole,
     PrincipalStatus,
     PrincipalType,

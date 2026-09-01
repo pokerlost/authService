@@ -64,11 +64,10 @@ than sharing one model across layers.
 
 `docs/architecture/request-lifecycle.md` explains composition and per-request flow.
 `docs/architecture/persistence-and-transactions.md` defines PostgreSQL session ownership. The API
-wire surface is documented separately in `docs/api/overview.md`, and the shared idempotency
-primitive is documented in `docs/architecture/business-operation-fingerprinting.md`.
+wire surface is documented separately in `docs/api/overview.md`.
 
 The current checkout adds the service-client credential foundation, a transactional operator
-bootstrap command, and `POST /oauth.token` on top of the authorization domain and persistence
+bootstrap command, and body-only JSON `POST /getToken` on top of the authorization domain and persistence
 foundation. The detailed responsibility split and authorization rules are documented in
 `docs/architecture/service-client-credentials.md`.
 

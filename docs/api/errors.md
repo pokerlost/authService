@@ -1,7 +1,7 @@
 # API errors
 
 This page documents the failure categories normalized by the API boundary into safe
-`ApplicationResponse[None]` forms.
+`PokerlostResponse[None]` forms.
 
 ## Runtime mappings
 
@@ -30,7 +30,7 @@ statuses retain their status and use `AUTHSERVICE_HTTP_ERROR` with
 Application errors are transport-independent exceptions with stable public codes and messages.
 The API layer selects the HTTP status. A concrete service may add a specific application failure
 only when its responsibilities require one, then it must publish the corresponding
-`ApplicationResponse[None]` status on affected routes and update the
+`PokerlostResponse[None]` status on affected routes and update the
 `docs/api/public-surface.md`.
 
 ## Database and unexpected failures
@@ -45,24 +45,21 @@ Public failures do not expose submitted values, tracebacks, SQL details, credent
 secrets. The envelope invariants are defined in
 `docs/api/application-response.md`.
 
-## OAuth2 token errors
+## `getToken` errors
 
-Every handled failure at `POST /oauth.token` uses `ApplicationResponse[None]`; none uses a
-token-specific error object, FastAPI `detail`, raw Pydantic validation details, HTML, or plaintext.
-The mapping is:
+Every handled failure at `POST /getToken` uses `PokerlostResponse[None]`; none exposes FastAPI
+`detail`, Pydantic validation details, submitted JSON, credentials, or token values.
 
 | Condition | Application error | HTTP status |
 | --- | --- | ---: |
-| Missing `grant_type` or `scope`, malformed form input, duplicated singleton fields, or forbidden body credentials | `AUTHSERVICE_INVALID_REQUEST` | `400` |
-| Grant type other than `client_credentials` | `AUTHSERVICE_UNSUPPORTED_GRANT_TYPE` | `400` |
-| Missing or malformed Basic authentication, unknown or non-confidential client, rejected secret, disabled client or principal, or no accepted credential | `AUTHSERVICE_INVALID_CLIENT` | `401` |
-| Authenticated confidential client without explicit `client_credentials` permission | `AUTHSERVICE_UNAUTHORIZED_CLIENT` | `400` |
-| Present but empty, unknown, duplicated, or unauthorized requested scope | `AUTHSERVICE_INVALID_SCOPE` | `400` |
-| Missing, malformed, or unauthorized resource | `AUTHSERVICE_INVALID_TARGET` | `400` |
+| Missing or malformed JSON envelope or payload | `AUTHSERVICE_INVALID_REQUEST` | `400` |
+| Unknown/non-confidential client, rejected secret, disabled client/principal, or no accepted credential | `AUTHSERVICE_INVALID_CLIENT` | `401` |
+| Authenticated client without explicit service-client credential permission | `AUTHSERVICE_UNAUTHORIZED_CLIENT` | `400` |
+| Empty, unknown, duplicated, or unauthorized requested scope | `AUTHSERVICE_INVALID_SCOPE` | `400` |
+| Missing, malformed, or unauthorized logical audience | `AUTHSERVICE_INVALID_TARGET` | `400` |
 | PostgreSQL temporarily unavailable | `AUTHSERVICE_TEMPORARILY_UNAVAILABLE` | `503` |
 | Unexpected token-processing failure | `AUTHSERVICE_SERVER_ERROR` | `500` |
 
-`AUTHSERVICE_INVALID_CLIENT` always uses the safe message `Client authentication failed.` and
-includes `WWW-Authenticate: Basic`, without distinguishing client, principal, or credential state.
-Every token success and failure response includes `Cache-Control: no-store` and
-`Pragma: no-cache`.
+`AUTHSERVICE_INVALID_CLIENT` uses the same safe message for every credential failure. No response
+contains an authentication challenge or retry header. A retry delay, if introduced for an
+availability response, belongs only in `PokerlostResponse.retry_after`.

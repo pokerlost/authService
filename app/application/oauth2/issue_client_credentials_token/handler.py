@@ -1,4 +1,4 @@
-"""OAuth2 client-credentials service-token issuance orchestration."""
+"""Service-client credential token issuance orchestration."""
 
 from __future__ import annotations
 
@@ -6,15 +6,15 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from pydantic import SecretStr
-from pypokerlost.contracts.authorization import (
-    AccessTokenClaims,
+from pypokerlost.types import (
     AuthorizationRole,
+    PokerlostAccessTokenClaims,
     PrincipalStatus,
     PrincipalType,
+    format_pokerlost_scope_string,
 )
-from pypokerlost.types import format_oauth_scope_string
 
-from application.oauth2 import OAuth2ErrorCode, OAuth2TokenError
+from application.oauth2 import GetTokenError, GetTokenErrorCode
 from application.ports import (
     ClientCredentialsAuthorizationContext,
     ClientCredentialsQuery,
@@ -56,9 +56,9 @@ class IssueClientCredentialsTokenHandler(
     ) -> None:
         """Store exact policy and caller-owned authorization adapters."""
         if not issuer.strip() or issuer != issuer.strip():
-            raise ValueError("OAuth2 issuer must be non-empty and have no outer whitespace")
+            raise ValueError("Token issuer must be non-empty and have no outer whitespace")
         if not 60 <= access_token_ttl_seconds <= 3600:
-            raise ValueError("OAuth2 access-token TTL must be between 60 and 3600 seconds")
+            raise ValueError("Access-token TTL must be between 60 and 3600 seconds")
         self._client_credentials_query = client_credentials_query
         self._secret_processor = secret_processor
         self._signer = signer
@@ -75,33 +75,34 @@ class IssueClientCredentialsTokenHandler(
             input_.client_id,
         )
         if context is None:
-            raise OAuth2TokenError(OAuth2ErrorCode.INVALID_CLIENT)
+            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
 
         now = datetime.now(UTC)
         self._authenticate_client(context, input_.client_secret, at=now)
         principal_id, service_slug = self._validate_service_binding(context)
 
         if OAuthGrantType.CLIENT_CREDENTIALS not in context.grant_types:
-            raise OAuth2TokenError(OAuth2ErrorCode.UNAUTHORIZED_CLIENT)
+            raise GetTokenError(GetTokenErrorCode.UNAUTHORIZED_CLIENT)
 
         requested_scopes = frozenset(input_.requested_scopes)
         if not requested_scopes or len(requested_scopes) != len(input_.requested_scopes):
-            raise OAuth2TokenError(OAuth2ErrorCode.INVALID_SCOPE)
+            raise GetTokenError(GetTokenErrorCode.INVALID_SCOPE)
         if not (
             requested_scopes.issubset(context.service_scopes)
             and requested_scopes.issubset(context.client_scopes)
         ):
-            raise OAuth2TokenError(OAuth2ErrorCode.INVALID_SCOPE)
+            raise GetTokenError(GetTokenErrorCode.INVALID_SCOPE)
         if not (
             input_.resource in context.service_audiences
             and input_.resource in context.client_audiences
         ):
-            raise OAuth2TokenError(OAuth2ErrorCode.INVALID_TARGET)
+            raise GetTokenError(GetTokenErrorCode.INVALID_TARGET)
 
-        scope = format_oauth_scope_string(requested_scopes)
+        scopes = tuple(sorted(requested_scopes))
+        scope = format_pokerlost_scope_string(scopes)
         expires_at = now + timedelta(seconds=self._access_token_ttl_seconds)
         token = self._signer.sign(
-            AccessTokenClaims(
+            PokerlostAccessTokenClaims(
                 issuer=self._issuer,
                 subject=principal_id,
                 audience=input_.resource.value,
@@ -120,7 +121,7 @@ class IssueClientCredentialsTokenHandler(
         return IssueClientCredentialsTokenResult(
             access_token=SecretStr(token),
             expires_in=self._access_token_ttl_seconds,
-            scope=scope,
+            scopes=scopes,
         )
 
     def _authenticate_client(
@@ -132,16 +133,16 @@ class IssueClientCredentialsTokenHandler(
     ) -> None:
         """Authenticate without disclosing client or credential failure details."""
         if context.client_status is not OAuthClientStatus.ACTIVE:
-            raise OAuth2TokenError(OAuth2ErrorCode.INVALID_CLIENT)
+            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
         if context.client_type is not OAuthClientType.CONFIDENTIAL:
-            raise OAuth2TokenError(OAuth2ErrorCode.INVALID_CLIENT)
+            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
         matches = tuple(
             self._secret_processor.verify(secret, credential.secret_digest)
             for credential in context.credentials
             if credential.accepts_at(at)
         )
         if not any(matches):
-            raise OAuth2TokenError(OAuth2ErrorCode.INVALID_CLIENT)
+            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
 
     @staticmethod
     def _validate_service_binding(
@@ -158,5 +159,5 @@ class IssueClientCredentialsTokenHandler(
             or context.service_slug is None
             or not context.service_slug.strip()
         ):
-            raise OAuth2TokenError(OAuth2ErrorCode.INVALID_CLIENT)
+            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
         return context.principal_id, context.service_slug

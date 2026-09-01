@@ -1,6 +1,6 @@
 # authService documentation
 
-This documentation describes the current authService OAuth2 surface, service-client foundation,
+This documentation describes the current authService body-only Pokerlost surface, service-client foundation,
 architecture, and verified development workflows.
 
 ## Getting started
@@ -25,7 +25,6 @@ architecture, and verified development workflows.
 - `docs/architecture/persistence-and-transactions.md` — persistence and transactions.
 - `docs/architecture/service-client-credentials.md` — service client credentials.
 - `docs/architecture/inter-service-clients.md` — outbound client, token ownership, and retry.
-- `docs/architecture/business-operation-fingerprinting.md` — idempotency fingerprinting.
 
 ## Development
 

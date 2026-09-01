@@ -9,8 +9,8 @@ metadata:
 data:
   AUTHSERVICE_ROOT_OPERATION: {{ required "rootOperation is required" .Values.rootOperation | quote }}
   AUTHSERVICE_OPENAPI_OPERATION: {{ required "openapiOperation is required" .Values.openapiOperation | quote }}
-  AUTHSERVICE_OAUTH2__ISSUER: {{ required "oauth2.issuer is required" .Values.oauth2.issuer | quote }}
-  AUTHSERVICE_OAUTH2__ACCESS_TOKEN_TTL_SECONDS: {{ required "oauth2.accessTokenTtlSeconds is required" .Values.oauth2.accessTokenTtlSeconds | quote }}
+  AUTHSERVICE_TOKEN__ISSUER: {{ required "token.issuer is required" .Values.token.issuer | quote }}
+  AUTHSERVICE_TOKEN__ACCESS_TOKEN_TTL_SECONDS: {{ required "token.accessTokenTtlSeconds is required" .Values.token.accessTokenTtlSeconds | quote }}
   AUTHSERVICE_JWT__PRIVATE_KEY_PATH: {{ required "jwtSigningKey.mountPath is required" .Values.jwtSigningKey.mountPath | quote }}
   AUTHSERVICE_JWT__KEY_ID: {{ required "jwtSigningKey.keyId is required" .Values.jwtSigningKey.keyId | quote }}
   {{- range $name, $value := .Values.environment }}

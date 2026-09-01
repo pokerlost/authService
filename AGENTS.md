@@ -151,26 +151,6 @@ latest direct user requirement
   wire-format versions, field grammar, database identifiers, role values, and business operation
   IDs.
 
-## Business-operation fingerprinting
-
-- Reuse the focused `application/idempotency` package; do not fork its encoding or comparison
-  behavior in a feature package. Its exact protocol domain is
-  `pokerlost.businessOperationFingerprint.v2` followed by one NUL byte, and semantic field names
-  match ASCII lowerCamelCase `^[a-z][A-Za-z0-9]*$`.
-- A concrete idempotent operation supplies a small explicit field mapping, including an operation
-  discriminator when different operation types share one persistence key namespace. Never use
-  JSON, `repr()`, randomized password hashes, or manually concatenated values as canonical input.
-- authService requires the settings secret with `require_secret()`, constructs one process-owned
-  `BusinessOperationFingerprinter` in application lifespan, and injects it into future handlers.
-  Never instantiate it per request, in a repository, or at import time.
-- Persist only the 32-byte digest and positive key version. Never persist or log canonical
-  plaintext, input fields, secrets, or digests, and never expose them through the API.
-- Do not rotate the active key until all retained idempotency records created with the old key have
-  expired or been deleted. A candidate with a different key version is a conflict.
-- The v2 format is a coordinated pre-production break. Clear disposable records produced by the
-  former format before enabling v2; do not add dual-format comparison or silently claim old
-  replays remain comparable.
-
 ## Dependencies
 
 Consume public FastAPI dependencies through PEP 695 aliases:

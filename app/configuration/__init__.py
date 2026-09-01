@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from .jwt import JWTSettings
-from .oauth2 import OAuth2Settings
 from .settings import Settings
+from .token import TokenSettings
 
 __all__ = (
     "JWTSettings",
-    "OAuth2Settings",
     "Settings",
+    "TokenSettings",
 )

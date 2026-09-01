@@ -24,7 +24,7 @@ Their exact composition is documented in `docs/development/commands.md`.
 - `helm lint` and `helm template` check chart structure and rendered Kubernetes resources.
 - The authoritative OpenAPI generator and installed-SDK end-to-end probe check `pypokerlost` compatibility when an API wire contract changes.
 - When a concrete outbound integration changes, run an ephemeral probe for final public SDK
-  imports, target settings, lifespan start/stop, bearer enrichment, explicit safe retry,
+  imports, target settings, lifespan start/stop, body authorization, explicit safe retry,
   one-attempt default behavior, and the absence of a database transaction around remote I/O. Do
   not claim or retain that probe as a pristine test suite.
 

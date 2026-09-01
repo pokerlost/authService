@@ -12,7 +12,7 @@ from domain.value_model import ValueModel
 
 
 class ResourceIndicator(ValueModel):
-    """Exact PokerLost service resource URI without normalization."""
+    """Exact Pokerlost service resource URI without normalization."""
 
     pattern: ClassVar[re.Pattern[str]] = re.compile(
         r"^urn:pokerlost:service:[a-z][A-Za-z0-9]*$",
@@ -27,7 +27,7 @@ class ResourceIndicator(ValueModel):
         if cls.pattern.fullmatch(value) is None:
             raise PydanticCustomError(
                 "invalid_resource_indicator",
-                "Resource must be an exact PokerLost service URI",
+                "Resource must be an exact Pokerlost service URI",
             )
         return value
 

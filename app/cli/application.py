@@ -9,7 +9,7 @@ from uuid import UUID
 import typer
 import uvicorn
 from pydantic import ValidationError
-from pypokerlost.types import parse_oauth_scope_string
+from pypokerlost.types import parse_pokerlost_scope_string
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from application.errors import ApplicationError
@@ -77,7 +77,7 @@ def bootstrap_service_client(
     ],
     scope: Annotated[
         list[str] | None,
-        typer.Option("--scope", help="Exact OAuth2 scope grant; repeat for each scope."),
+        typer.Option("--scope", help="Exact Pokerlost scope grant; repeat for each scope."),
     ] = None,
     resource: Annotated[
         list[str] | None,
@@ -148,7 +148,7 @@ def _build_bootstrap_command(
     return BootstrapServiceClientCommand(
         service_slug=service_slug,
         client_id=parsed_client_id,
-        scopes=parse_oauth_scope_string(" ".join(scope_values)),
+        scopes=parse_pokerlost_scope_string(" ".join(scope_values)),
         resources=tuple(ResourceIndicator.parse(value) for value in resource_values),
     )
 
