@@ -1,6 +1,9 @@
 # PokerlostResponse
 
-Every normal API result uses `pypokerlost.types.PokerlostResponse[ResultT]`.
+Every normal business API result uses `pypokerlost.types.PokerlostResponse[ResultT]` as its FastAPI
+`response_model`. Endpoints return plain mappings or data; FastAPI validates and serializes the
+wire envelope. Only centralized failure handling constructs the model explicitly for a
+`JSONResponse` boundary.
 
 ## Success
 
@@ -35,6 +38,10 @@ guidance used by the SDK.
 
 The strict immutable model rejects extra fields and impossible combinations through Pydantic
 validation. Services do not extend it, wrap it, or create another wire envelope.
+
+Outside response-model processing, centralized exception handling constructs
+`PokerlostResponse[None]`, dumps it in JSON mode, and passes the validated content to
+`JSONResponse`. Normal success routes do not use `JSONResponse`.
 
 ## Client behavior
 

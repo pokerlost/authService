@@ -1,20 +1,19 @@
 # Inter-service clients
 
-This page defines the extension pattern for a service with a real outbound Pokerlost dependency.
-authService currently creates no outbound client, outbound credentials, token store, or retry
-configuration and does not call itself or accountsService.
+This page defines the extension pattern for a service with a real outbound protected Pokerlost
+dependency. authService currently creates no outbound client, credential state, token store,
+refresher, or retry configuration and does not call itself or accountsService.
 
 ## Ownership
 
-The SDK owns transport, generated methods/types, canonical errors, authorization middleware, retry
-middleware, token coordination, and JSON envelope serialization. The consuming service owns target
-configuration, client credentials, audience, a `PokerlostTokenStore` implementation, and business
-replay policy.
+The SDK owns typed methods and models, `PokerlostClient`, transport, canonical response decoding,
+errors, retry middleware, bearer-header injection, and one narrow reactive refresh trigger. The
+consuming service owns client credentials, explicit initial `GetToken` orchestration, exact target
+audience, a persistent `PokerlostTokenStore`, and a cross-process-safe
+`PokerlostTokenRefresher` implementation.
 
-Create one target-specific `PokerlostClient` in lifespan, publish it through one named
-`ApplicationResources` field, reuse it, and close it on shutdown. Do not instantiate an authService
-client in a service without a real dependency. Do not create direct HTTP, a string-keyed registry,
-or a per-request client.
+Create one target-specific `PokerlostClient` in lifespan only for a real dependency. Do not create
+direct HTTP transport, a string-keyed client registry, or a per-request client.
 
 ## Middleware composition
 
@@ -22,22 +21,29 @@ Protected target calls compose:
 
 ```text
 PokerlostRetryMiddleware
-→ PokerlostAuthorizationMiddleware
+→ PokerlostAuthenticationMiddleware
 → transport
 ```
 
-The authorization middleware receives a dedicated auth-target client without authorization
-middleware, generated `GetToken` and `RefreshToken` methods, exact client credentials, target
-audience, refresh skew, clock, and token store. This avoids recursive token acquisition.
+Every concrete method explicitly declares `__scopes__`. `None` means no access-token scope
+requirement and bypasses token storage, refresh, and header injection. A non-empty tuple chooses
+the protected flow. Missing metadata or an empty tuple is a local configuration error before
+network I/O.
 
-Before a protected call it reads the method's exact `required_scopes`, loads state by audience and
-canonical scope set, reuses a sufficiently fresh token, or performs a single-flight refresh or
-acquisition. It creates an immutable `PokerlostAuthorizedRequest` with only
-`authorization.access_token`. Public calls bypass the token store and emit `PokerlostRequest`.
+For a protected call, authentication middleware loads stored state by client identity, exact
+audience, and canonical scope set, refreshes once if its aware UTC expiry has passed, and injects
+`Authorization: Bearer <access-token>` into the internal transport call. The access token never
+enters `PokerlostRequest`.
 
-`getToken` sends `client_id`, `client_secret`, exact scopes, and audience in its JSON payload.
-`refreshToken` sends `refresh_token`, optional scopes, and audience in its JSON payload. Token
-operations are public at transport level and use the dedicated auth-target client.
+If the service returns exactly `POKERLOST_ACCESS_TOKEN_EXPIRED`, middleware invalidates or compares
+the observed version, invokes the injected refresher once, rebuilds authorization state, and
+replays the identical operation/body/business operation ID once. Invalid token, insufficient
+scope, arbitrary `401`, and `403` responses do not trigger refresh.
+
+Production refresh coordination uses a bounded lease or equivalent compare-and-swap design. It
+must allow stale workers to reload a newer version and must not hold a PostgreSQL transaction while
+redeeming a rotating refresh token over the network. Raw access and refresh tokens require an
+approved reversible storage primitive and are never persisted in plaintext.
 
 ## Retry
 
@@ -55,12 +61,9 @@ options = PokerlostRequestOptions(
 The immutable policy uses at most three attempts including the first, full jitter, and a
 five-second logical budget. It retries canonical connection/timeout failures and statuses `408`,
 `425`, `429`, `500`, `502`, `503`, and `504`. Server delay comes only from body `retry_after` and
-must fit the remaining budget. Cancellation and protocol/decode errors propagate; exhaustion
-re-raises the last canonical error.
-
-A `401` authentication failure invalidates matching state but does not replay the current call. A
-`403` insufficient-scope failure does not refresh or retry. The next independent protected call may
-acquire a new token.
+must fit the remaining budget. Cancellation propagates immediately. A malformed `502`, `503`, or
+`504` can retry by safe status metadata; a malformed ordinary `2xx` is a non-retryable protocol
+error.
 
 ## Business boundaries
 
@@ -68,11 +71,11 @@ Transport retry is not business idempotency. A replay-safe mutation reuses the s
 operation ID, semantic payload, generated operation, and target. Middleware never creates or
 changes those values and does not own workflow persistence or reconciliation.
 
-Never keep a PostgreSQL transaction open during token acquisition, a target call, retry sleep, or
-another attempt. Persist short local phases at explicit workflow boundaries.
+Never keep a PostgreSQL transaction open during initial token acquisition, refresh, a target call,
+retry sleep, or another attempt. Persist short local phases at explicit workflow boundaries.
 
 ## Privacy
 
-Never log client secrets, passwords, private keys, access or refresh tokens, login grants, or raw
-request/response bodies. Secret-bearing SDK models hide representations and validation input;
-canonical exceptions retain only safe scalar metadata.
+Never log client secrets, passwords, private keys, access or refresh tokens, login grants,
+authorization headers, or raw request/response bodies. Secret-bearing SDK models hide
+representations and validation input; canonical exceptions retain only safe scalar metadata.

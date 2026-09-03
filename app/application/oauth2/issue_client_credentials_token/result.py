@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from pydantic import Field, SecretStr
-from pypokerlost.types import PokerlostScope
+from pypokerlost.enums import PokerlostScopes
+from pypokerlost.types import PokerlostAudience
 
 from application import Result
 
@@ -13,4 +14,5 @@ class IssueClientCredentialsTokenResult(Result):
 
     access_token: SecretStr = Field(repr=False, min_length=1)
     expires_in: int
-    scopes: tuple[PokerlostScope, ...]
+    scopes: tuple[PokerlostScopes, ...]
+    audience: PokerlostAudience

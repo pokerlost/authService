@@ -5,10 +5,10 @@ from __future__ import annotations
 from uuid import UUID
 
 from pydantic import Field, SecretStr
-from pypokerlost.types import PokerlostScope
+from pypokerlost.enums import PokerlostScopes
+from pypokerlost.types import PokerlostAudience
 
 from application import Command
-from domain.resource_indicator import ResourceIndicator
 
 
 class IssueClientCredentialsTokenCommand(Command):
@@ -16,5 +16,5 @@ class IssueClientCredentialsTokenCommand(Command):
 
     client_id: UUID
     client_secret: SecretStr = Field(repr=False)
-    requested_scopes: tuple[PokerlostScope, ...]
-    resource: ResourceIndicator
+    requested_scopes: tuple[PokerlostScopes, ...]
+    audience: PokerlostAudience

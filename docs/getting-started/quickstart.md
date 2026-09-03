@@ -37,8 +37,9 @@ curl --fail-with-body http://127.0.0.1:8000/
 curl --fail-with-body http://127.0.0.1:8000/getOpenApi
 ```
 
-The response wraps the unmodified FastAPI OpenAPI document in `PokerlostResponse`. The document
-contains no project extension or misleading header-oriented security scheme.
+The response is the unmodified FastAPI OpenAPI document. It contains no project extension. A
+standard OAuth2 scheme and exact requirement appear naturally when an implemented protected route
+uses the authorization dependency.
 
 ## Service-token flow
 
@@ -47,6 +48,6 @@ scope and audience grants against PostgreSQL. The command emits the raw client s
 commit; authService persists only its digest.
 
 The client submits `PokerlostRequest[GetTokenRequest]` JSON to `POST /getToken`. Credentials,
-scopes, and logical audience exist only in `payload`; a successful access token appears only in
+scopes, and exact service-name audience exist only in `payload`; a successful access token appears only in
 `result.access_token`. See `docs/architecture/service-client-credentials.md` and
 `docs/api/public-surface.md` for the exact contract.

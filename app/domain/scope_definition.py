@@ -1,20 +1,20 @@
-"""Persisted OAuth2 scope catalog domain value."""
+"""Persisted authorization scope definition domain value."""
 
 from __future__ import annotations
 
 from uuid import UUID
 
 from pydantic import AwareDatetime, field_validator
-from pypokerlost.types import PokerlostScope
+from pypokerlost.enums import PokerlostScopes
 
 from domain.value_model import ValueModel
 
 
-class OAuthScopeDefinition(ValueModel):
-    """One persisted OAuth2 scope catalog entry."""
+class ScopeDefinition(ValueModel):
+    """One stable scope catalog entry."""
 
     scope_id: UUID
-    name: PokerlostScope
+    name: PokerlostScopes
     description: str
     created_at: AwareDatetime
     updated_at: AwareDatetime
@@ -24,5 +24,5 @@ class OAuthScopeDefinition(ValueModel):
     def validate_description(cls, description: str) -> str:
         """Reject an empty or whitespace-only catalog description."""
         if not description.strip():
-            raise ValueError("OAuth2 scope description must not be empty")
+            raise ValueError("Scope description must not be empty")
         return description

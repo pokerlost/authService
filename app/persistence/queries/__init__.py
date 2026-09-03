@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from .client_credentials_query import SQLAlchemyClientCredentialsQuery
-from .role_scope_query import SQLAlchemyRoleScopeQuery
+from .scope_definition_query import SQLAlchemyScopeDefinitionQuery
 
 __all__ = (
     "SQLAlchemyClientCredentialsQuery",
-    "SQLAlchemyRoleScopeQuery",
+    "SQLAlchemyScopeDefinitionQuery",
 )

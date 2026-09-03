@@ -7,6 +7,8 @@ from datetime import datetime
 from typing import Never
 from uuid import UUID
 
+from pypokerlost.enums import PrincipalType
+from pypokerlost.types import PokerlostAudience
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError as SQLAlchemyIntegrityError
 
@@ -16,16 +18,15 @@ from application.ports import OAuthClientRepository
 from domain.enums import OAuthClientStatus, OAuthClientType, OAuthGrantType
 from domain.oauth_client import OAuthClient
 from domain.oauth_client_credential import OAuthClientCredential
-from domain.oauth_scope_definition import OAuthScopeDefinition
-from domain.resource_indicator import ResourceIndicator
+from domain.scope_definition import ScopeDefinition
 from persistence.database.models import (
-    OAuthClientAudienceGrantModel,
+    ClientAudienceGrantModel,
+    ClientCredentialModel,
+    ClientScopeGrantModel,
     OAuthClientGrantTypeModel,
     OAuthClientModel,
-    OAuthClientScopeGrantModel,
-    OAuthClientSecretModel,
-    ServiceAudienceGrantModel,
-    ServiceScopeGrantModel,
+    PrincipalAudienceGrantModel,
+    PrincipalScopeGrantModel,
 )
 
 from .base import SQLAlchemyRepository
@@ -63,6 +64,11 @@ class SQLAlchemyOAuthClientRepository(SQLAlchemyRepository, OAuthClientRepositor
             client_type=client.client_type.value,
             status=client.status.value,
             bound_principal_id=client.bound_principal_id,
+            bound_principal_type=(
+                PrincipalType.SERVICE.value
+                if client.client_type is OAuthClientType.CONFIDENTIAL
+                else None
+            ),
             created_at=client.created_at,
             updated_at=client.updated_at,
         )
@@ -104,7 +110,7 @@ class SQLAlchemyOAuthClientRepository(SQLAlchemyRepository, OAuthClientRepositor
 
     async def add_credential(self, credential: OAuthClientCredential) -> None:
         """Add and flush one digest-only OAuth2 client credential."""
-        model = OAuthClientSecretModel(
+        model = ClientCredentialModel(
             id=credential.credential_id,
             client_id=credential.client_id,
             secret_digest=credential.secret_digest,
@@ -117,16 +123,16 @@ class SQLAlchemyOAuthClientRepository(SQLAlchemyRepository, OAuthClientRepositor
         self._session.add(model)
         await self._flush((model,))
 
-    async def add_service_scope_grants(
+    async def add_principal_scope_grants(
         self,
         principal_id: UUID,
-        scopes: Collection[OAuthScopeDefinition],
+        scopes: Collection[ScopeDefinition],
         *,
         created_at: datetime,
     ) -> None:
-        """Add and flush exact direct service-principal scope grants."""
+        """Add and flush exact direct principal scope grants."""
         models = tuple(
-            ServiceScopeGrantModel(
+            PrincipalScopeGrantModel(
                 principal_id=principal_id,
                 scope_id=scope.scope_id,
                 created_at=created_at,
@@ -138,13 +144,13 @@ class SQLAlchemyOAuthClientRepository(SQLAlchemyRepository, OAuthClientRepositor
     async def add_client_scope_grants(
         self,
         client_id: UUID,
-        scopes: Collection[OAuthScopeDefinition],
+        scopes: Collection[ScopeDefinition],
         *,
         created_at: datetime,
     ) -> None:
         """Add and flush exact direct OAuth2 client scope grants."""
         models = tuple(
-            OAuthClientScopeGrantModel(
+            ClientScopeGrantModel(
                 client_id=client_id,
                 scope_id=scope.scope_id,
                 created_at=created_at,
@@ -153,18 +159,18 @@ class SQLAlchemyOAuthClientRepository(SQLAlchemyRepository, OAuthClientRepositor
         )
         await self._add_all(models)
 
-    async def add_service_audience_grants(
+    async def add_principal_audience_grants(
         self,
         principal_id: UUID,
-        audiences: Collection[ResourceIndicator],
+        audiences: Collection[PokerlostAudience],
         *,
         created_at: datetime,
     ) -> None:
-        """Add and flush exact direct service-principal audience grants."""
+        """Add and flush exact direct principal audience grants."""
         models = tuple(
-            ServiceAudienceGrantModel(
+            PrincipalAudienceGrantModel(
                 principal_id=principal_id,
-                audience=audience.value,
+                audience=str(audience),
                 created_at=created_at,
             )
             for audience in audiences
@@ -174,15 +180,15 @@ class SQLAlchemyOAuthClientRepository(SQLAlchemyRepository, OAuthClientRepositor
     async def add_client_audience_grants(
         self,
         client_id: UUID,
-        audiences: Collection[ResourceIndicator],
+        audiences: Collection[PokerlostAudience],
         *,
         created_at: datetime,
     ) -> None:
         """Add and flush exact direct OAuth2 client audience grants."""
         models = tuple(
-            OAuthClientAudienceGrantModel(
+            ClientAudienceGrantModel(
                 client_id=client_id,
-                audience=audience.value,
+                audience=str(audience),
                 created_at=created_at,
             )
             for audience in audiences
@@ -192,10 +198,10 @@ class SQLAlchemyOAuthClientRepository(SQLAlchemyRepository, OAuthClientRepositor
     async def _add_all(
         self,
         models: tuple[
-            ServiceScopeGrantModel
-            | OAuthClientScopeGrantModel
-            | ServiceAudienceGrantModel
-            | OAuthClientAudienceGrantModel,
+            PrincipalScopeGrantModel
+            | ClientScopeGrantModel
+            | PrincipalAudienceGrantModel
+            | ClientAudienceGrantModel,
             ...,
         ],
     ) -> None:

@@ -79,12 +79,12 @@ authservice bootstrap-service-client \
   --service-slug accountsservice \
   --scope auth.internal.provisionHuman \
   --scope auth.internal.setPrincipalStatus \
-  --scope auth.internal.assignPrincipalRole \
+  --scope auth.internal.replacePrincipalScopes \
   --scope auth.internal.issueLoginGrant \
-  --resource urn:pokerlost:service:authService
+  --audience authService
 ```
 
-At least one `--scope` and one `--resource` are required; `--client-id` optionally supplies a
+At least one `--scope` and one `--audience` are required; `--client-id` optionally supplies a
 canonical UUID. This command is intentionally not wrapped by a Make target. Its transaction and
 one-time secret behavior are documented in `docs/architecture/service-client-credentials.md`.
 
@@ -103,6 +103,7 @@ one-time secret behavior are documented in `docs/architecture/service-client-cre
 | `check-full` | `check`, then `pre-commit` |
 
 Use `make format` deliberately when source repair is intended. Use `make check` for the regular source-preserving verification set.
+Tests are added or run only when the user explicitly requests them for the task.
 
 ## Database commands
 

@@ -32,7 +32,7 @@ result-reader wrapper or projection framework. authService adds concrete authori
 models, repositories, and query adapters for responsibilities defined in `SERVICE.md`.
 
 Service-client bootstrap persists one service principal, confidential client, credential digest,
-grant-type permission, and exact service/client scope and audience grants in one transaction.
+grant-type permission, and exact principal/client scope and audience grants in one transaction.
 `POST /getToken` uses one request-owned transaction for authorization reads and signs through the
 lifespan-owned signer without persisting the access token.
 
@@ -71,3 +71,9 @@ imported through `persistence.database.models` so migration autogeneration can s
 fake baseline model or migration to an otherwise pristine service. The command workflow and review
 discipline are documented in
 `docs/development/database-migrations.md`.
+
+The current head uses `scope_definitions`, `principal_scope_grants`, `client_scope_grants`,
+`principal_audience_grants`, `client_audience_grants`, and `client_credentials`. The forward
+migration after `d04e2b7c8a93` preserves stable scope IDs, materializes every legacy effective
+permission together with existing direct service grants, verifies row counts before destructive
+steps, and then removes the superseded authorization classification schema.

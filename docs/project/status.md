@@ -12,14 +12,14 @@ also constructs one process-owned RS256 signer from required configuration.
 The two base endpoints are ready with the `.env.example` values:
 
 - `GET /` returns the service root envelope;
-- `GET /getOpenApi` publishes the wrapped FastAPI OpenAPI document.
+- `GET /getOpenApi` publishes the raw FastAPI OpenAPI document.
 
 Their operation IDs are `getRoot` and `getOpenApi`; the root HTTP path is always `/`.
 
 Their exact contract is listed in `docs/api/public-surface.md`.
 
-Transactional operator bootstrap and body-only JSON `POST /getToken` are implemented. Token
-issuance uses the exact intersection of direct service/client scope and audience grants, stores
+Transactional operator bootstrap and public JSON `POST /getToken` are implemented. Token issuance
+uses the exact intersection of direct principal/client scope and audience grants, stores
 credentials only as digests, and returns a short-lived service access token in
 `PokerlostResponse[PokerlostToken]`.
 
@@ -27,8 +27,8 @@ credentials only as digests, and returns a short-lived service access token in
 
 Human principal HTTP management, login-grant exchange, refresh tokens, sessions, logout, JWKS,
 retained signing keys, and signing-key rotation remain absent. authService has no outbound client,
-concrete token verifier, token store, or service-specific retry configuration. The empty inbound
-scope catalog and fail-closed verifier seam are foundation for future protected routes.
+concrete token verifier, token store, or service-specific retry configuration. The local auth scope
+catalog and fail-closed verifier seam are foundation for future protected routes.
 
 The SDK transport/middleware boundary and explicit `PokerlostRetryPolicy` opt-in are documented in
 `docs/architecture/inter-service-clients.md`. These are extension points, not default runtime

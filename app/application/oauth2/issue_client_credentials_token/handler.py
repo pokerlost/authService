@@ -6,15 +6,15 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from pydantic import SecretStr
-from pypokerlost.types import (
-    AuthorizationRole,
-    PokerlostAccessTokenClaims,
-    PrincipalStatus,
-    PrincipalType,
-    format_pokerlost_scope_string,
-)
+from pypokerlost.enums import PrincipalStatus, PrincipalType
+from pypokerlost.types import PokerlostAccessTokenClaims
 
-from application.oauth2 import GetTokenError, GetTokenErrorCode
+from application.oauth2 import (
+    InvalidOAuthClientError,
+    InvalidRequestedScopeError,
+    InvalidTargetAudienceError,
+    UnauthorizedOAuthClientError,
+)
 from application.ports import (
     ClientCredentialsAuthorizationContext,
     ClientCredentialsQuery,
@@ -75,53 +75,50 @@ class IssueClientCredentialsTokenHandler(
             input_.client_id,
         )
         if context is None:
-            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
+            raise InvalidOAuthClientError
 
         now = datetime.now(UTC)
         self._authenticate_client(context, input_.client_secret, at=now)
-        principal_id, service_slug = self._validate_service_binding(context)
+        principal_id = self._validate_service_binding(context)
 
         if OAuthGrantType.CLIENT_CREDENTIALS not in context.grant_types:
-            raise GetTokenError(GetTokenErrorCode.UNAUTHORIZED_CLIENT)
+            raise UnauthorizedOAuthClientError
 
         requested_scopes = frozenset(input_.requested_scopes)
         if not requested_scopes or len(requested_scopes) != len(input_.requested_scopes):
-            raise GetTokenError(GetTokenErrorCode.INVALID_SCOPE)
+            raise InvalidRequestedScopeError
         if not (
-            requested_scopes.issubset(context.service_scopes)
+            requested_scopes.issubset(context.principal_scopes)
             and requested_scopes.issubset(context.client_scopes)
         ):
-            raise GetTokenError(GetTokenErrorCode.INVALID_SCOPE)
+            raise InvalidRequestedScopeError
         if not (
-            input_.resource in context.service_audiences
-            and input_.resource in context.client_audiences
+            input_.audience in context.principal_audiences
+            and input_.audience in context.client_audiences
         ):
-            raise GetTokenError(GetTokenErrorCode.INVALID_TARGET)
+            raise InvalidTargetAudienceError
 
         scopes = tuple(sorted(requested_scopes))
-        scope = format_pokerlost_scope_string(scopes)
         expires_at = now + timedelta(seconds=self._access_token_ttl_seconds)
         token = self._signer.sign(
             PokerlostAccessTokenClaims(
                 issuer=self._issuer,
                 subject=principal_id,
-                audience=input_.resource.value,
+                audience=input_.audience,
                 issued_at=now,
                 not_before=now,
                 expires_at=expires_at,
                 token_id=uuid4(),
-                token_use="access",
                 client_id=context.client_id,
-                scope=scope,
+                scopes=scopes,
                 principal_type=PrincipalType.SERVICE,
-                role=AuthorizationRole.AUTO,
-                service_slug=service_slug,
             ),
         )
         return IssueClientCredentialsTokenResult(
             access_token=SecretStr(token),
             expires_in=self._access_token_ttl_seconds,
             scopes=scopes,
+            audience=input_.audience,
         )
 
     def _authenticate_client(
@@ -133,31 +130,28 @@ class IssueClientCredentialsTokenHandler(
     ) -> None:
         """Authenticate without disclosing client or credential failure details."""
         if context.client_status is not OAuthClientStatus.ACTIVE:
-            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
+            raise InvalidOAuthClientError
         if context.client_type is not OAuthClientType.CONFIDENTIAL:
-            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
+            raise InvalidOAuthClientError
         matches = tuple(
             self._secret_processor.verify(secret, credential.secret_digest)
             for credential in context.credentials
             if credential.accepts_at(at)
         )
         if not any(matches):
-            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
+            raise InvalidOAuthClientError
 
     @staticmethod
     def _validate_service_binding(
         context: ClientCredentialsAuthorizationContext,
-    ) -> tuple[UUID, str]:
-        """Require the exact active service/auto principal bound to the client."""
+    ) -> UUID:
+        """Require the exact active service principal bound to the client."""
         if (
             context.bound_principal_id is None
             or context.principal_id is None
             or context.bound_principal_id != context.principal_id
             or context.principal_type is not PrincipalType.SERVICE
-            or context.principal_role is not AuthorizationRole.AUTO
             or context.principal_status is not PrincipalStatus.ACTIVE
-            or context.service_slug is None
-            or not context.service_slug.strip()
         ):
-            raise GetTokenError(GetTokenErrorCode.INVALID_CLIENT)
-        return context.principal_id, context.service_slug
+            raise InvalidOAuthClientError
+        return context.principal_id

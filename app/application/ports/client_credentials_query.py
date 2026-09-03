@@ -7,12 +7,8 @@ from uuid import UUID
 
 from pydantic import model_validator
 from pydantic_core import PydanticCustomError
-from pypokerlost.types import (
-    AuthorizationRole,
-    PokerlostScope,
-    PrincipalStatus,
-    PrincipalType,
-)
+from pypokerlost.enums import PokerlostScopes, PrincipalStatus, PrincipalType
+from pypokerlost.types import PokerlostAudience
 
 from domain.enums import (
     OAuthClientStatus,
@@ -20,7 +16,6 @@ from domain.enums import (
     OAuthGrantType,
 )
 from domain.oauth_client_credential import OAuthClientCredential
-from domain.resource_indicator import ResourceIndicator
 from domain.value_model import ValueModel
 
 
@@ -33,15 +28,13 @@ class ClientCredentialsAuthorizationContext(ValueModel):
     bound_principal_id: UUID | None
     principal_id: UUID | None
     principal_type: PrincipalType | None
-    principal_role: AuthorizationRole | None
     principal_status: PrincipalStatus | None
-    service_slug: str | None
     credentials: tuple[OAuthClientCredential, ...]
     grant_types: frozenset[OAuthGrantType]
-    service_scopes: frozenset[PokerlostScope]
-    client_scopes: frozenset[PokerlostScope]
-    service_audiences: frozenset[ResourceIndicator]
-    client_audiences: frozenset[ResourceIndicator]
+    principal_scopes: frozenset[PokerlostScopes]
+    client_scopes: frozenset[PokerlostScopes]
+    principal_audiences: frozenset[PokerlostAudience]
+    client_audiences: frozenset[PokerlostAudience]
 
     @model_validator(mode="after")
     def validate_credential_ownership(self) -> Self:

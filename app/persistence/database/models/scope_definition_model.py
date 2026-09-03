@@ -1,4 +1,4 @@
-"""Persisted OAuth2 scope catalog SQLAlchemy model."""
+"""Persisted authorization scope catalog SQLAlchemy model."""
 
 from __future__ import annotations
 
@@ -9,20 +9,20 @@ from persistence.database import UUIDModel
 from persistence.database.mixins import TimestampMixin
 
 
-class OAuthScopeModel(TimestampMixin, UUIDModel):
-    """Persist one exact OAuth2 scope catalog entry."""
+class ScopeDefinitionModel(TimestampMixin, UUIDModel):
+    """Persist one exact authorization scope definition."""
 
-    __tablename__ = "oauth_scopes"
+    __tablename__ = "scope_definitions"
     __table_args__ = (
         CheckConstraint(
             "name ~ '^[a-z][A-Za-z0-9]*([.][a-z][A-Za-z0-9]*)+$'",
-            name="ck_oauth_scopes_name_format",
+            name="ck_scope_definitions_name_format",
         ),
         CheckConstraint(
             "length(btrim(description)) > 0",
-            name="ck_oauth_scopes_description_not_empty",
+            name="ck_scope_definitions_description_not_empty",
         ),
-        UniqueConstraint("name", name="uq_oauth_scopes_name"),
+        UniqueConstraint("name", name="uq_scope_definitions_name"),
     )
 
     name: Mapped[str] = mapped_column(Text, nullable=False)

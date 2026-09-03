@@ -6,10 +6,8 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from application.oauth2 import GetTokenErrorCode
 from service import SERVICE_ERROR_PREFIX
 
-from .get_token import get_token_error_response, is_get_token_request
 from .response import error_response
 
 
@@ -17,8 +15,6 @@ async def handle_http_error(request: Request, exception: Exception) -> JSONRespo
     """Replace framework detail responses with the universal safe error envelope."""
     if not isinstance(exception, StarletteHTTPException):
         raise TypeError("Unexpected exception registered as HTTPException")
-    if is_get_token_request(request):
-        return get_token_error_response(GetTokenErrorCode.INVALID_REQUEST)
     if exception.status_code == status.HTTP_404_NOT_FOUND:
         error = f"{SERVICE_ERROR_PREFIX}_NOT_FOUND"
         message = "Resource not found"

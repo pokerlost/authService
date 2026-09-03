@@ -14,7 +14,7 @@ from .oauth_client_secret_processor import (
     OAuthClientSecretProcessor,
 )
 from .pokerlost_token_verifier import PokerlostTokenVerifier
-from .role_scope_query import RoleScopeQuery
+from .scope_definition_query import ScopeDefinitionQuery
 from .service_access_token_signer import ServiceAccessTokenSigner
 
 __all__ = (
@@ -26,6 +26,6 @@ __all__ = (
     "OAuthClientRepository",
     "OAuthClientSecretProcessor",
     "PokerlostTokenVerifier",
-    "RoleScopeQuery",
+    "ScopeDefinitionQuery",
     "ServiceAccessTokenSigner",
 )

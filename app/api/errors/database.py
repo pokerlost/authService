@@ -8,11 +8,11 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from api.request_context import request_id_from_state
-from application.oauth2 import GetTokenErrorCode
 from service import SERVICE_ERROR_PREFIX
 
-from .get_token import get_token_error_response, is_get_token_request
 from .response import error_response
+
+_DATABASE_RETRY_AFTER_SECONDS = 1.0
 
 
 async def handle_database_unavailable(request: Request, exception: Exception) -> JSONResponse:
@@ -24,12 +24,11 @@ async def handle_database_unavailable(request: Request, exception: Exception) ->
         request_id=request_id_from_state(request),
         _exc_info=exception,
     )
-    if is_get_token_request(request):
-        return get_token_error_response(GetTokenErrorCode.TEMPORARILY_UNAVAILABLE)
     return error_response(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         error=f"{SERVICE_ERROR_PREFIX}_DATABASE_UNAVAILABLE",
         error_message="Required database is unavailable",
+        retry_after=_DATABASE_RETRY_AFTER_SECONDS,
     )
 
 
@@ -42,8 +41,6 @@ async def handle_database_error(request: Request, exception: Exception) -> JSONR
         request_id=request_id_from_state(request),
         _exc_info=exception,
     )
-    if is_get_token_request(request):
-        return get_token_error_response(GetTokenErrorCode.SERVER_ERROR)
     return error_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         error=f"{SERVICE_ERROR_PREFIX}_DATABASE_ERROR",

@@ -9,7 +9,8 @@ from uuid import UUID
 import typer
 import uvicorn
 from pydantic import ValidationError
-from pypokerlost.types import parse_pokerlost_scope_string
+from pypokerlost.enums import PokerlostScopes
+from pypokerlost.types import PokerlostAudience
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from application.errors import ApplicationError
@@ -19,9 +20,8 @@ from application.oauth2.bootstrap_service_client import (
     BootstrapServiceClientResult,
 )
 from configuration import Settings
-from domain.resource_indicator import ResourceIndicator
 from persistence.database import create_database_engine, create_session_factory
-from persistence.queries import SQLAlchemyRoleScopeQuery
+from persistence.queries import SQLAlchemyScopeDefinitionQuery
 from persistence.repositories import (
     SQLAlchemyAuthorizationPrincipalRepository,
     SQLAlchemyOAuthClientRepository,
@@ -79,9 +79,9 @@ def bootstrap_service_client(
         list[str] | None,
         typer.Option("--scope", help="Exact Pokerlost scope grant; repeat for each scope."),
     ] = None,
-    resource: Annotated[
+    audience: Annotated[
         list[str] | None,
-        typer.Option("--resource", help="Exact service resource grant; repeat for each target."),
+        typer.Option("--audience", help="Exact service-name audience; repeat for each target."),
     ] = None,
     client_id: Annotated[
         str | None,
@@ -93,7 +93,7 @@ def bootstrap_service_client(
         command = _build_bootstrap_command(
             service_slug=service_slug,
             scope_values=scope,
-            resource_values=resource,
+            audience_values=audience,
             client_id_value=client_id,
         )
     except ValidationError, ValueError:
@@ -125,7 +125,7 @@ def _build_bootstrap_command(
     *,
     service_slug: str,
     scope_values: list[str] | None,
-    resource_values: list[str] | None,
+    audience_values: list[str] | None,
     client_id_value: str | None,
 ) -> BootstrapServiceClientCommand:
     """Validate exact operator values before opening a database transaction."""
@@ -133,8 +133,8 @@ def _build_bootstrap_command(
         raise ValueError("Service slug is empty")
     if not scope_values or len(set(scope_values)) != len(scope_values):
         raise ValueError("Scopes are missing or duplicated")
-    if not resource_values or len(set(resource_values)) != len(resource_values):
-        raise ValueError("Resources are missing or duplicated")
+    if not audience_values or len(set(audience_values)) != len(audience_values):
+        raise ValueError("Audiences are missing or duplicated")
 
     parsed_client_id: UUID | None = None
     if client_id_value is not None:
@@ -148,8 +148,8 @@ def _build_bootstrap_command(
     return BootstrapServiceClientCommand(
         service_slug=service_slug,
         client_id=parsed_client_id,
-        scopes=parse_pokerlost_scope_string(" ".join(scope_values)),
-        resources=tuple(ResourceIndicator.parse(value) for value in resource_values),
+        scopes=tuple(PokerlostScopes(value) for value in scope_values),
+        audiences=tuple(PokerlostAudience(value) for value in audience_values),
     )
 
 
@@ -165,7 +165,7 @@ async def _execute_bootstrap(
             handler = BootstrapServiceClientHandler(
                 SQLAlchemyAuthorizationPrincipalRepository(session),
                 SQLAlchemyOAuthClientRepository(session),
-                SQLAlchemyRoleScopeQuery(session),
+                SQLAlchemyScopeDefinitionQuery(session),
                 SHA256OAuthClientSecretProcessor(),
             )
             return await handler(command)

@@ -5,7 +5,7 @@ This is the authoritative manifest of endpoints currently exposed by `authServic
 | Method and path | `operation_id` | Request | Response |
 | --- | --- | --- | --- |
 | `GET /` | `getRoot` | No body or authentication | `PokerlostResponse[None]` |
-| `GET /getOpenApi` | `getOpenApi` | No body or authentication | `PokerlostResponse[dict[str, JSONValue]]` |
+| `GET /getOpenApi` | `getOpenApi` | No body or authentication | OpenAPI 3.1 document |
 | `POST /getToken` | `getToken` | JSON `PokerlostRequest[GetTokenRequest]` | `PokerlostResponse[PokerlostToken]` |
 
 The root response is:
@@ -38,10 +38,12 @@ The two infrastructure endpoints do not prove database readiness. Liveness/readi
 }
 ```
 
-Authentication material has no alternate HTTP transport. The operation has no `authorization`
-field because it is public at transport level. The client ID is a canonical lowercase UUID; the
-audience is a single service identifier mapped internally to the persisted resource value. Every
-requested scope must exist and be granted independently to the service principal and client.
+The operation has no access-token `Authorization` header because its generated method declares
+`__scopes__ = None`; its client credentials are operation-specific payload fields. Pydantic parses
+the client ID as a UUID, stores the client secret as `SecretStr`, and rejects empty or duplicate
+scope lists before the route runs. Audience is the same exact service name in request, persisted
+grants, response, and JWT. Every requested scope must exist and be granted independently to the
+principal and client.
 
 A successful response is:
 
@@ -62,5 +64,5 @@ A successful response is:
 ```
 
 The current stage creates no refresh token. Deferred SDK stubs `refreshToken`, `getJwks`,
-`provisionHuman`, `setPrincipalStatus`, `assignPrincipalRole`, and `issueLoginGrant` are not active
-authService endpoints.
+`provisionHuman`, `setPrincipalStatus`, `replacePrincipalScopes`, and `issueLoginGrant` are not
+active authService endpoints.

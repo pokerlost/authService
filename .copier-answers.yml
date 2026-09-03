@@ -1,4 +1,4 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: fc29edd
+_commit: 88681062004fc23e9cf93ab1ae699e0a14ee3318
 _src_path: git@github.com:pokerlost/serviceTemplate.git
 service_name: authService

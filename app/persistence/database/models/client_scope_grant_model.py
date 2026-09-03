@@ -1,4 +1,4 @@
-"""Direct service-principal scope grant SQLAlchemy model."""
+"""Direct authorization-client scope grant SQLAlchemy model."""
 
 from __future__ import annotations
 
@@ -12,26 +12,26 @@ from persistence.database import Base
 from persistence.database.mixins import CreatedAtMixin
 
 
-class ServiceScopeGrantModel(CreatedAtMixin, Base):
-    """Persist one exact direct service-principal OAuth2 scope grant."""
+class ClientScopeGrantModel(CreatedAtMixin, Base):
+    """Persist one exact direct scope grant for an authorization client."""
 
-    __tablename__ = "service_scope_grants"
+    __tablename__ = "client_scope_grants"
     __table_args__ = (
         ForeignKeyConstraint(
-            ("principal_id",),
-            ("authorization_principals.id",),
-            name="fk_service_scope_grants_principal_id_authorization_principals",
+            ("client_id",),
+            ("oauth_clients.id",),
+            name="fk_client_scope_grants_client_id_oauth_clients",
             ondelete="RESTRICT",
         ),
         ForeignKeyConstraint(
             ("scope_id",),
-            ("oauth_scopes.id",),
-            name="fk_service_scope_grants_scope_id_oauth_scopes",
+            ("scope_definitions.id",),
+            name="fk_client_scope_grants_scope_id_scope_definitions",
             ondelete="RESTRICT",
         ),
     )
 
-    principal_id: Mapped[UUID] = mapped_column(
+    client_id: Mapped[UUID] = mapped_column(
         PostgreSQLUUID(as_uuid=True),
         primary_key=True,
     )

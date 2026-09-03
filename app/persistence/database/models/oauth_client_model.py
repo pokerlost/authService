@@ -26,14 +26,17 @@ class OAuthClientModel(TimestampMixin, UUIDModel):
             name="ck_oauth_clients_status",
         ),
         CheckConstraint(
-            "(client_type = 'public' AND bound_principal_id IS NULL) OR "
-            "(client_type = 'confidential' AND bound_principal_id IS NOT NULL)",
+            "(client_type = 'public' AND bound_principal_id IS NULL "
+            "AND bound_principal_type IS NULL) OR "
+            "(client_type = 'confidential' AND bound_principal_id IS NOT NULL "
+            "AND bound_principal_type IS NOT NULL "
+            "AND bound_principal_type = 'service')",
             name="ck_oauth_clients_binding",
         ),
         ForeignKeyConstraint(
-            ("bound_principal_id",),
-            ("authorization_principals.id",),
-            name="fk_oauth_clients_bound_principal_id_authorization_principals",
+            ("bound_principal_id", "bound_principal_type"),
+            ("authorization_principals.id", "authorization_principals.principal_type"),
+            name="fk_oauth_clients_bound_principal_authorization_principals",
             ondelete="RESTRICT",
         ),
     )
@@ -44,3 +47,4 @@ class OAuthClientModel(TimestampMixin, UUIDModel):
         PostgreSQLUUID(as_uuid=True),
         nullable=True,
     )
+    bound_principal_type: Mapped[str | None] = mapped_column(String(16), nullable=True)

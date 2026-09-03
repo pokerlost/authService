@@ -31,8 +31,9 @@ application
 -> security and persistence ports
 ```
 
-`api` owns FastAPI transport and composition. It translates public schemas into application values
-and translates results into API responses. `application` owns transport-independent use-case
+`api` owns FastAPI transport and composition. Pydantic request models validate wire input, routes
+translate it into application values, and FastAPI response models validate and serialize plain
+route results. `application` owns transport-independent use-case
 orchestration and builds its typed command, query, and result values on the framework-independent
 `domain` foundation.
 
@@ -67,10 +68,10 @@ explicit translation between those boundaries rather than sharing one model acro
 wire surface is documented separately in `docs/api/overview.md`. When `SERVICE.md` declares a real
 outbound target, `docs/architecture/inter-service-clients.md` defines the target-specific SDK
 client, middleware, token-store ownership, retry, and lifecycle extension. Inbound local
-verification uses the application port described in `docs/api/body-authorization.md`.
+verification uses the application port described in `docs/api/header-authorization.md`.
 
 The current service owns authorization principals, client/grant persistence, operator bootstrap,
-and public body-only `POST /getToken`. Lifespan constructs one process-owned signer; no access token
+and public JSON `POST /getToken`. Lifespan constructs one process-owned signer; no access token
 is persisted. authService has no outbound target, token store, placeholder remote client, or
 service-specific retry configuration. See
 `docs/architecture/service-client-credentials.md` for the exact ownership rules.

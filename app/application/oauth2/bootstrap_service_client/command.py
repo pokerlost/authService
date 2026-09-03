@@ -6,10 +6,10 @@ from typing import Self
 from uuid import UUID
 
 from pydantic import field_validator, model_validator
-from pypokerlost.types import PokerlostScope
+from pypokerlost.enums import PokerlostScopes
+from pypokerlost.types import PokerlostAudience
 
 from application import Command
-from domain.resource_indicator import ResourceIndicator
 
 
 class BootstrapServiceClientCommand(Command):
@@ -17,8 +17,8 @@ class BootstrapServiceClientCommand(Command):
 
     service_slug: str
     client_id: UUID | None = None
-    scopes: tuple[PokerlostScope, ...]
-    resources: tuple[ResourceIndicator, ...]
+    scopes: tuple[PokerlostScopes, ...]
+    audiences: tuple[PokerlostAudience, ...]
 
     @field_validator("service_slug")
     @classmethod
@@ -35,8 +35,8 @@ class BootstrapServiceClientCommand(Command):
             raise ValueError("At least one Pokerlost scope is required")
         if len(frozenset(self.scopes)) != len(self.scopes):
             raise ValueError("Duplicate Pokerlost scopes are not allowed")
-        if not self.resources:
-            raise ValueError("At least one resource indicator is required")
-        if len({resource.value for resource in self.resources}) != len(self.resources):
-            raise ValueError("Duplicate resource indicators are not allowed")
+        if not self.audiences:
+            raise ValueError("At least one audience is required")
+        if len(frozenset(self.audiences)) != len(self.audiences):
+            raise ValueError("Duplicate audiences are not allowed")
         return self

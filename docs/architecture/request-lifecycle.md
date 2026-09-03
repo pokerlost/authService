@@ -23,29 +23,32 @@ FastAPI
 → flat route
 → application handler
 → persistence adapter
-→ PokerlostResponse
+→ plain success mapping
+→ FastAPI response_model
+→ PokerlostResponse JSON
 ```
 
 The request ID is generated server-side and exists only in request state and telemetry. No caller
 correlation value is accepted or returned as a transport contract.
 
-A public route receives `PokerlostRequest[Payload]`. A protected route receives
-`PokerlostAuthorizedRequest[Payload]` and declares exact scopes through `Security`. The dependency
-validates the cached JSON authorization object, invokes the local verifier for the service
-audience, and checks every scope before the route executes.
+Every route receives `PokerlostRequest[Payload]`. A protected route also declares exact scopes
+through `Security`. The dependency parses one bearer header, invokes the local verifier for the
+exact service-name audience, and checks every scope before the route executes.
 
-Routes translate payloads into application commands/queries and translate results into typed
-`PokerlostResponse` values. Central handlers normalize validation, application, database,
-authentication, authorization, and unexpected failures without exposing submitted input.
+Pydantic request models parse and validate wire values before routes translate payloads into
+application commands or queries. Routes translate application results into plain mappings;
+FastAPI validates and serializes them through the declared `response_model`. Central handlers
+normalize validation, application, database, authentication, authorization, and unexpected
+failures without exposing submitted input.
 
 `POST /getToken` opens a request-owned database transaction, invokes the client-credentials
-handler, and returns the signed token in `PokerlostResponse`. Root and OpenAPI routes open no
-database transaction.
+handler, and returns plain token data for response-model serialization. Root and OpenAPI routes
+open no database transaction.
 
 ## Transactions and outbound calls
 
 A route that declares `DatabaseSession` owns one async transaction. It must end before token
 acquisition, outbound SDK calls, retry sleep, or subsequent attempts. Outbound clients use retry
-then authorization middleware as documented in `docs/architecture/inter-service-clients.md`.
+then authentication middleware as documented in `docs/architecture/inter-service-clients.md`.
 
 The root and OpenAPI routes stop at the route layer and open no database transaction.

@@ -20,8 +20,9 @@ schema collisions before writing.
 `GET /`, `GET /getOpenApi`, and existing health probes are public bodyless infrastructure
 exceptions. Business GET bodies and other business HTTP methods are unsupported.
 
-Each router is one flat module with a factory and decorator. Do not use nested router directories,
-imperative registration, route constants, or post-hoc mutation.
+Each router is one flat module with a module-level `router = APIRouter(...)` and module-level
+decorated endpoints. Do not use static router factories, nested endpoints, nested router
+directories, imperative registration, route constants used once, or post-hoc mutation.
 
 ## Requests
 
@@ -35,29 +36,34 @@ A public operation accepts `PokerlostRequest[Payload]`:
 }
 ```
 
-A protected operation accepts `PokerlostAuthorizedRequest[Payload]`:
+A protected operation uses the same request envelope:
 
 ```json
 {
-  "authorization": {
-    "access_token": "secret-value"
-  },
   "payload": {}
 }
 ```
 
-Payload types are named closed Pydantic models with snake_case wire fields. Requests do not use
+It additionally receives `Authorization: Bearer <access-token>`. Service/application code never
+constructs a generic header map, and access-token authentication never enters the JSON body.
+
+Payload types are named closed Pydantic models with snake_case wire fields. Pydantic owns UUID,
+enum, credential, audience, and primitive wire parsing plus cross-field wire invariants. Route
+modules do not duplicate that work in `_parse_*` or `_validate_*` helpers. Requests do not use
 business path/query parameters, cookies, form data, caller-supplied transport metadata, embedded
 anonymous bodies, or manual content negotiation.
 
 ## Responses
 
-Every success and handled failure uses `PokerlostResponse`. Routes publish the typed success model
-and `PokerlostResponse[None]` for expected failures. The five-field invariant is documented in
+Every business success and handled failure uses `PokerlostResponse`. Normal routes declare the
+typed envelope as `response_model` and return plain mappings or data for FastAPI to validate and
+serialize. Central exception handlers alone construct `PokerlostResponse[None]` explicitly before
+returning `JSONResponse`. The five-field invariant is documented in
 `docs/api/pokerlost-response.md`.
 
 ## Scopes
 
 Scope IDs are separate from operation IDs. Protected routes declare exact values through FastAPI
-`Security`, while the matching SDK method declares the same `required_scopes` tuple. See
-`docs/api/body-authorization.md`.
+`Security`; standard OpenAPI then drives the generated method's explicit `__scopes__` metadata.
+No access-token scope requirement is represented only by `None`; an empty tuple is invalid. See
+`docs/api/header-authorization.md`.

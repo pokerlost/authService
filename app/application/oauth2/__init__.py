@@ -2,6 +2,16 @@
 
 from __future__ import annotations
 
-from .errors import GetTokenError, GetTokenErrorCode
+from .errors import (
+    InvalidOAuthClientError,
+    InvalidRequestedScopeError,
+    InvalidTargetAudienceError,
+    UnauthorizedOAuthClientError,
+)
 
-__all__ = ("GetTokenError", "GetTokenErrorCode")
+__all__ = (
+    "InvalidOAuthClientError",
+    "InvalidRequestedScopeError",
+    "InvalidTargetAudienceError",
+    "UnauthorizedOAuthClientError",
+)

@@ -38,12 +38,11 @@ These targets wrap `helm lint` and `helm template`; they do not install or upgra
 
 The Deployment exposes the HTTP container port and configures both liveness and readiness probes as `GET /`. The root endpoint does not require a database query, so it checks that the application process can serve its base response without turning the probe into a business operation.
 
-The top-level Helm values `rootOperation` and `openapiOperation` map explicitly to
-`AUTHSERVICE_ROOT_OPERATION` and
-`AUTHSERVICE_OPENAPI_OPERATION` in the generated ConfigMap. Other non-secret
-environment values come from the `environment` map. Database credentials and the optional Logfire
-token use `secretEnvironment` references to existing Kubernetes Secret names and keys. Never place
-secret values in `environment`, a ConfigMap, a committed values file, or rendered documentation.
+Non-secret environment values come from the `environment` map. Database credentials and the
+optional Logfire token use `secretEnvironment` references to existing Kubernetes Secret names and
+keys. The stable root and OpenAPI paths and operation IDs are defined in source and do not appear
+as Helm configuration. Never place secret values in `environment`, a ConfigMap, a committed values
+file, or rendered documentation.
 
 The service-owned `token` values supply the exact issuer and access-token TTL. `jwtSigningKey`
 supplies the non-secret key ID, mounted path, existing Secret name, and Secret data key. Only the

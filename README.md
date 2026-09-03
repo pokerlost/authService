@@ -1,8 +1,8 @@
 # authService
 
 `authService` is the Pokerlost token authority. It provides PostgreSQL-backed service principals
-and confidential clients, operator bootstrap, and short-lived RS256 access tokens through the
-private body-only Pokerlost JSON protocol over HTTPS.
+and confidential clients, operator bootstrap, and short-lived scope-only RS256 access tokens
+through the Pokerlost JSON protocol over HTTPS.
 
 Read `docs/index.md` for the complete guide and `AGENTS.md` for normative engineering rules. Python
 3.14 or newer is required.
@@ -33,12 +33,12 @@ make run
 | method | path | operation_id | response |
 | --- | --- | --- | --- |
 | `GET` | `/` | `getRoot` | `PokerlostResponse[None]` |
-| `GET` | `/getOpenApi` | `getOpenApi` | `PokerlostResponse[dict[str, JSONValue]]` |
+| `GET` | `/getOpenApi` | `getOpenApi` | OpenAPI 3.1 document |
 | `POST` | `/getToken` | `getToken` | `PokerlostResponse[PokerlostToken]` |
 
-The infrastructure endpoints accept no body or authentication. `getToken` receives client
-credentials, exact scopes, and a logical target audience only in `PokerlostRequest.payload`; it
-accepts no authentication header, cookie, query parameter, or form data.
+The infrastructure endpoints and `getToken` have no access-token scope requirement. `getToken`
+receives client credentials, exact scopes, and an exact target service name only in
+`PokerlostRequest.payload`; these operation credentials are not an access-token header.
 
 ## Bootstrap a service client
 
@@ -50,9 +50,9 @@ authservice bootstrap-service-client \
   --service-slug accountsservice \
   --scope auth.internal.provisionHuman \
   --scope auth.internal.setPrincipalStatus \
-  --scope auth.internal.assignPrincipalRole \
+  --scope auth.internal.replacePrincipalScopes \
   --scope auth.internal.issueLoginGrant \
-  --resource urn:pokerlost:service:authService
+  --audience authService
 ```
 
 The command prints the generated client ID and raw secret only after commit. Store that secret

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKeyConstraint, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -44,16 +44,14 @@ class AuthorizationPrincipalModel(TimestampMixin, UUIDModel):
             "service_slug",
             name="uq_authorization_principals_service_slug",
         ),
-        ForeignKeyConstraint(
-            ("role_id", "principal_type"),
-            ("authorization_roles.id", "authorization_roles.principal_type"),
-            name="fk_authorization_principals_role_id_authorization_roles",
-            ondelete="RESTRICT",
+        UniqueConstraint(
+            "id",
+            "principal_type",
+            name="uq_authorization_principals_id_principal_type",
         ),
     )
 
     principal_type: Mapped[str] = mapped_column(String(16), nullable=False)
-    role_id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
     account_id: Mapped[UUID | None] = mapped_column(
         PostgreSQLUUID(as_uuid=True),

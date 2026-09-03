@@ -6,10 +6,8 @@ from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from application.oauth2 import GetTokenErrorCode
 from service import SERVICE_ERROR_PREFIX
 
-from .get_token import get_token_error_response, is_get_token_request
 from .response import error_response
 
 
@@ -17,8 +15,6 @@ async def handle_validation_error(request: Request, exception: Exception) -> JSO
     """Return a stable validation failure without echoing submitted values."""
     if not isinstance(exception, RequestValidationError):
         raise TypeError("Unexpected exception registered as RequestValidationError")
-    if is_get_token_request(request):
-        return get_token_error_response(GetTokenErrorCode.INVALID_REQUEST)
     return error_response(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         error=f"{SERVICE_ERROR_PREFIX}_VALIDATION_ERROR",

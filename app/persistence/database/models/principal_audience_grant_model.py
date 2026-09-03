@@ -1,4 +1,4 @@
-"""Direct OAuth2 client audience grant SQLAlchemy model."""
+"""Direct principal audience grant SQLAlchemy model."""
 
 from __future__ import annotations
 
@@ -12,24 +12,24 @@ from persistence.database import Base
 from persistence.database.mixins import CreatedAtMixin
 
 
-class OAuthClientAudienceGrantModel(CreatedAtMixin, Base):
-    """Persist one exact resource URI granted to an OAuth2 client."""
+class PrincipalAudienceGrantModel(CreatedAtMixin, Base):
+    """Persist one exact service-name audience granted to a principal."""
 
-    __tablename__ = "oauth_client_audience_grants"
+    __tablename__ = "principal_audience_grants"
     __table_args__ = (
         CheckConstraint(
-            "audience ~ '^urn:pokerlost:service:[a-z][A-Za-z0-9]*$'",
-            name="ck_oauth_client_audience_grants_audience_format",
+            "audience ~ '^[a-z][A-Za-z0-9]*$'",
+            name="ck_principal_audience_grants_audience_format",
         ),
         ForeignKeyConstraint(
-            ("client_id",),
-            ("oauth_clients.id",),
-            name="fk_oauth_client_audience_grants_client_id_oauth_clients",
+            ("principal_id",),
+            ("authorization_principals.id",),
+            name="fk_principal_audience_grants_principal_id_authorization_principals",
             ondelete="RESTRICT",
         ),
     )
 
-    client_id: Mapped[UUID] = mapped_column(
+    principal_id: Mapped[UUID] = mapped_column(
         PostgreSQLUUID(as_uuid=True),
         primary_key=True,
     )

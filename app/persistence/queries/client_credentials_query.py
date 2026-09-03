@@ -5,15 +5,10 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
-from pypokerlost.types import (
-    AuthorizationRole,
-    PokerlostScope,
-    PrincipalStatus,
-    PrincipalType,
-    parse_pokerlost_scope_string,
-)
-from sqlalchemy import and_, func, literal, select
+from pypokerlost.enums import PokerlostScopes, PrincipalStatus, PrincipalType
+from pypokerlost.types import PokerlostAudience
 from sqlalchemy import cast as sql_cast
+from sqlalchemy import func, literal, select
 from sqlalchemy.dialects.postgresql import JSONB, aggregate_order_by
 
 from application.ports import (
@@ -26,24 +21,22 @@ from domain.enums import (
     OAuthGrantType,
 )
 from domain.oauth_client_credential import OAuthClientCredential
-from domain.resource_indicator import ResourceIndicator
 from persistence.database.models import (
     AuthorizationPrincipalModel,
-    AuthorizationRoleModel,
-    OAuthClientAudienceGrantModel,
+    ClientAudienceGrantModel,
+    ClientCredentialModel,
+    ClientScopeGrantModel,
     OAuthClientGrantTypeModel,
     OAuthClientModel,
-    OAuthClientScopeGrantModel,
-    OAuthClientSecretModel,
-    OAuthScopeModel,
-    ServiceAudienceGrantModel,
-    ServiceScopeGrantModel,
+    PrincipalAudienceGrantModel,
+    PrincipalScopeGrantModel,
+    ScopeDefinitionModel,
 )
 from persistence.repositories import SQLAlchemyRepository
 
 
 class SQLAlchemyClientCredentialsQuery(SQLAlchemyRepository, ClientCredentialsQuery):
-    """Read only exact direct client and service authorization facts."""
+    """Read only exact direct client and principal authorization facts."""
 
     async def get_authorization_context(
         self,
@@ -57,30 +50,30 @@ class SQLAlchemyClientCredentialsQuery(SQLAlchemyRepository, ClientCredentialsQu
                         aggregate_order_by(
                             func.jsonb_build_object(
                                 "credential_id",
-                                OAuthClientSecretModel.id,
+                                ClientCredentialModel.id,
                                 "client_id",
-                                OAuthClientSecretModel.client_id,
+                                ClientCredentialModel.client_id,
                                 "secret_digest",
-                                func.encode(OAuthClientSecretModel.secret_digest, "hex"),
+                                func.encode(ClientCredentialModel.secret_digest, "hex"),
                                 "status",
-                                OAuthClientSecretModel.status,
+                                ClientCredentialModel.status,
                                 "created_at",
-                                OAuthClientSecretModel.created_at,
+                                ClientCredentialModel.created_at,
                                 "updated_at",
-                                OAuthClientSecretModel.updated_at,
+                                ClientCredentialModel.updated_at,
                                 "expires_at",
-                                OAuthClientSecretModel.expires_at,
+                                ClientCredentialModel.expires_at,
                                 "revoked_at",
-                                OAuthClientSecretModel.revoked_at,
+                                ClientCredentialModel.revoked_at,
                             ),
-                            OAuthClientSecretModel.created_at,
-                            OAuthClientSecretModel.id,
+                            ClientCredentialModel.created_at,
+                            ClientCredentialModel.id,
                         ),
                     ),
                     sql_cast(literal("[]"), JSONB),
                 ),
             )
-            .where(OAuthClientSecretModel.client_id == OAuthClientModel.id)
+            .where(ClientCredentialModel.client_id == OAuthClientModel.id)
             .correlate(OAuthClientModel)
             .scalar_subquery()
         )
@@ -100,18 +93,21 @@ class SQLAlchemyClientCredentialsQuery(SQLAlchemyRepository, ClientCredentialsQu
             .correlate(OAuthClientModel)
             .scalar_subquery()
         )
-        service_scopes = (
+        principal_scopes = (
             select(
                 func.coalesce(
                     func.jsonb_agg(
-                        aggregate_order_by(OAuthScopeModel.name, OAuthScopeModel.name),
+                        aggregate_order_by(ScopeDefinitionModel.name, ScopeDefinitionModel.name),
                     ),
                     sql_cast(literal("[]"), JSONB),
                 ),
             )
-            .select_from(ServiceScopeGrantModel)
-            .join(OAuthScopeModel, ServiceScopeGrantModel.scope_id == OAuthScopeModel.id)
-            .where(ServiceScopeGrantModel.principal_id == OAuthClientModel.bound_principal_id)
+            .select_from(PrincipalScopeGrantModel)
+            .join(
+                ScopeDefinitionModel,
+                PrincipalScopeGrantModel.scope_id == ScopeDefinitionModel.id,
+            )
+            .where(PrincipalScopeGrantModel.principal_id == OAuthClientModel.bound_principal_id)
             .correlate(OAuthClientModel)
             .scalar_subquery()
         )
@@ -119,31 +115,34 @@ class SQLAlchemyClientCredentialsQuery(SQLAlchemyRepository, ClientCredentialsQu
             select(
                 func.coalesce(
                     func.jsonb_agg(
-                        aggregate_order_by(OAuthScopeModel.name, OAuthScopeModel.name),
+                        aggregate_order_by(ScopeDefinitionModel.name, ScopeDefinitionModel.name),
                     ),
                     sql_cast(literal("[]"), JSONB),
                 ),
             )
-            .select_from(OAuthClientScopeGrantModel)
-            .join(OAuthScopeModel, OAuthClientScopeGrantModel.scope_id == OAuthScopeModel.id)
-            .where(OAuthClientScopeGrantModel.client_id == OAuthClientModel.id)
+            .select_from(ClientScopeGrantModel)
+            .join(
+                ScopeDefinitionModel,
+                ClientScopeGrantModel.scope_id == ScopeDefinitionModel.id,
+            )
+            .where(ClientScopeGrantModel.client_id == OAuthClientModel.id)
             .correlate(OAuthClientModel)
             .scalar_subquery()
         )
-        service_audiences = (
+        principal_audiences = (
             select(
                 func.coalesce(
                     func.jsonb_agg(
                         aggregate_order_by(
-                            ServiceAudienceGrantModel.audience,
-                            ServiceAudienceGrantModel.audience,
+                            PrincipalAudienceGrantModel.audience,
+                            PrincipalAudienceGrantModel.audience,
                         ),
                     ),
                     sql_cast(literal("[]"), JSONB),
                 ),
             )
             .where(
-                ServiceAudienceGrantModel.principal_id == OAuthClientModel.bound_principal_id,
+                PrincipalAudienceGrantModel.principal_id == OAuthClientModel.bound_principal_id,
             )
             .correlate(OAuthClientModel)
             .scalar_subquery()
@@ -153,14 +152,14 @@ class SQLAlchemyClientCredentialsQuery(SQLAlchemyRepository, ClientCredentialsQu
                 func.coalesce(
                     func.jsonb_agg(
                         aggregate_order_by(
-                            OAuthClientAudienceGrantModel.audience,
-                            OAuthClientAudienceGrantModel.audience,
+                            ClientAudienceGrantModel.audience,
+                            ClientAudienceGrantModel.audience,
                         ),
                     ),
                     sql_cast(literal("[]"), JSONB),
                 ),
             )
-            .where(OAuthClientAudienceGrantModel.client_id == OAuthClientModel.id)
+            .where(ClientAudienceGrantModel.client_id == OAuthClientModel.id)
             .correlate(OAuthClientModel)
             .scalar_subquery()
         )
@@ -169,26 +168,17 @@ class SQLAlchemyClientCredentialsQuery(SQLAlchemyRepository, ClientCredentialsQu
             select(
                 OAuthClientModel,
                 AuthorizationPrincipalModel,
-                AuthorizationRoleModel.code,
                 credentials,
                 grant_types,
-                service_scopes,
+                principal_scopes,
                 client_scopes,
-                service_audiences,
+                principal_audiences,
                 client_audiences,
             )
             .select_from(OAuthClientModel)
             .outerjoin(
                 AuthorizationPrincipalModel,
                 OAuthClientModel.bound_principal_id == AuthorizationPrincipalModel.id,
-            )
-            .outerjoin(
-                AuthorizationRoleModel,
-                and_(
-                    AuthorizationPrincipalModel.role_id == AuthorizationRoleModel.id,
-                    AuthorizationPrincipalModel.principal_type
-                    == AuthorizationRoleModel.principal_type,
-                ),
             )
             .where(OAuthClientModel.id == client_id),
         )
@@ -197,7 +187,6 @@ class SQLAlchemyClientCredentialsQuery(SQLAlchemyRepository, ClientCredentialsQu
             return None
         client = cast(OAuthClientModel, row[0])
         principal = cast(AuthorizationPrincipalModel | None, row[1])
-        role_code = cast(str | None, row[2])
         principal_id = principal.id if principal is not None else None
         return ClientCredentialsAuthorizationContext(
             client_id=client.id,
@@ -208,20 +197,18 @@ class SQLAlchemyClientCredentialsQuery(SQLAlchemyRepository, ClientCredentialsQu
             principal_type=(
                 PrincipalType(principal.principal_type) if principal is not None else None
             ),
-            principal_role=AuthorizationRole(role_code) if role_code is not None else None,
             principal_status=(PrincipalStatus(principal.status) if principal is not None else None),
-            service_slug=principal.service_slug if principal is not None else None,
             credentials=tuple(
-                _credential_from_json(item) for item in cast(list[dict[str, Any]], row[3])
+                _credential_from_json(item) for item in cast(list[dict[str, Any]], row[2])
             ),
-            grant_types=frozenset(OAuthGrantType(value) for value in cast(list[str], row[4])),
-            service_scopes=_parse_scope_values(cast(list[str], row[5])),
-            client_scopes=_parse_scope_values(cast(list[str], row[6])),
-            service_audiences=frozenset(
-                ResourceIndicator.parse(value) for value in cast(list[str], row[7])
+            grant_types=frozenset(OAuthGrantType(value) for value in cast(list[str], row[3])),
+            principal_scopes=_parse_scope_values(cast(list[str], row[4])),
+            client_scopes=_parse_scope_values(cast(list[str], row[5])),
+            principal_audiences=frozenset(
+                PokerlostAudience(value) for value in cast(list[str], row[6])
             ),
             client_audiences=frozenset(
-                ResourceIndicator.parse(value) for value in cast(list[str], row[8])
+                PokerlostAudience(value) for value in cast(list[str], row[7])
             ),
         )
 
@@ -236,8 +223,6 @@ def _credential_from_json(value: dict[str, Any]) -> OAuthClientCredential:
     )
 
 
-def _parse_scope_values(values: list[str]) -> frozenset[PokerlostScope]:
-    """Validate persisted scope identifiers through the shared canonical parser."""
-    if not values:
-        return frozenset()
-    return frozenset(parse_pokerlost_scope_string(" ".join(values)))
+def _parse_scope_values(values: list[str]) -> frozenset[PokerlostScopes]:
+    """Validate persisted scope identifiers through the generated global enum."""
+    return frozenset(PokerlostScopes(value) for value in values)

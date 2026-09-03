@@ -1,28 +1,39 @@
-"""Safe internal getToken failure vocabulary."""
+"""Safe application failures for token issuance."""
 
 from __future__ import annotations
 
-from enum import StrEnum
+from typing import ClassVar
+
+from application.errors import (
+    ApplicationError,
+    InvalidRequestError,
+)
+from service import SERVICE_ERROR_PREFIX
 
 
-class GetTokenErrorCode(StrEnum):
-    """Closed internal categories mapped to stable authService application errors."""
+class InvalidOAuthClientError(ApplicationError):
+    """OAuth client identity or credential authentication failed."""
 
-    INVALID_REQUEST = "invalid_request"
-    INVALID_CLIENT = "invalid_client"
-    UNAUTHORIZED_CLIENT = "unauthorized_client"
-    INVALID_SCOPE = "invalid_scope"
-    INVALID_TARGET = "invalid_target"
-    TEMPORARILY_UNAVAILABLE = "temporarily_unavailable"
-    SERVER_ERROR = "server_error"
+    error_code: ClassVar[str] = f"{SERVICE_ERROR_PREFIX}_INVALID_CLIENT"
+    public_message: ClassVar[str] = "Client authentication failed."
 
 
-class GetTokenError(Exception):
-    """Expected getToken failure carrying only a safe closed error code."""
+class UnauthorizedOAuthClientError(InvalidRequestError):
+    """The authenticated client may not use the requested grant."""
 
-    __slots__ = ("error",)
+    error_code: ClassVar[str] = f"{SERVICE_ERROR_PREFIX}_UNAUTHORIZED_CLIENT"
+    public_message: ClassVar[str] = "The authenticated client is not authorized to request a token."
 
-    def __init__(self, error: GetTokenErrorCode) -> None:
-        """Store one public error code without retaining submitted input."""
-        super().__init__()
-        self.error = error
+
+class InvalidRequestedScopeError(InvalidRequestError):
+    """The requested scopes are absent, duplicated, unknown, or not granted."""
+
+    error_code: ClassVar[str] = f"{SERVICE_ERROR_PREFIX}_INVALID_SCOPE"
+    public_message: ClassVar[str] = "The requested scope is invalid."
+
+
+class InvalidTargetAudienceError(InvalidRequestError):
+    """The requested exact service audience is unknown or not granted."""
+
+    error_code: ClassVar[str] = f"{SERVICE_ERROR_PREFIX}_INVALID_TARGET"
+    public_message: ClassVar[str] = "The requested audience is invalid."

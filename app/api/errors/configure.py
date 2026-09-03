@@ -8,18 +8,15 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from application.errors import ApplicationError
-from application.oauth2 import GetTokenError
 
 from .application import handle_application_error
 from .database import handle_database_error, handle_database_unavailable
-from .get_token import handle_get_token_error
 from .http import handle_http_error
 from .validation import handle_validation_error
 
 
 def configure_exception_handlers(application: FastAPI) -> None:
     """Register sanitized handlers from specific to general."""
-    application.add_exception_handler(GetTokenError, handle_get_token_error)
     application.add_exception_handler(ApplicationError, handle_application_error)
     application.add_exception_handler(
         OperationalError,

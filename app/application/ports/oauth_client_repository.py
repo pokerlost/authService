@@ -7,11 +7,12 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+from pypokerlost.types import PokerlostAudience
+
 from domain.enums import OAuthGrantType
 from domain.oauth_client import OAuthClient
 from domain.oauth_client_credential import OAuthClientCredential
-from domain.oauth_scope_definition import OAuthScopeDefinition
-from domain.resource_indicator import ResourceIndicator
+from domain.scope_definition import ScopeDefinition
 
 
 class OAuthClientRepository(Protocol):
@@ -39,40 +40,40 @@ class OAuthClientRepository(Protocol):
         """Stage one digest-only OAuth2 client credential."""
         ...
 
-    async def add_service_scope_grants(
+    async def add_principal_scope_grants(
         self,
         principal_id: UUID,
-        scopes: Collection[OAuthScopeDefinition],
+        scopes: Collection[ScopeDefinition],
         *,
         created_at: datetime,
     ) -> None:
-        """Stage exact direct scope grants for one service principal."""
+        """Stage exact direct scope grants for one principal."""
         ...
 
     async def add_client_scope_grants(
         self,
         client_id: UUID,
-        scopes: Collection[OAuthScopeDefinition],
+        scopes: Collection[ScopeDefinition],
         *,
         created_at: datetime,
     ) -> None:
         """Stage exact direct scope grants for one OAuth2 client."""
         ...
 
-    async def add_service_audience_grants(
+    async def add_principal_audience_grants(
         self,
         principal_id: UUID,
-        audiences: Collection[ResourceIndicator],
+        audiences: Collection[PokerlostAudience],
         *,
         created_at: datetime,
     ) -> None:
-        """Stage exact audience grants for one service principal."""
+        """Stage exact audience grants for one principal."""
         ...
 
     async def add_client_audience_grants(
         self,
         client_id: UUID,
-        audiences: Collection[ResourceIndicator],
+        audiences: Collection[PokerlostAudience],
         *,
         created_at: datetime,
     ) -> None:

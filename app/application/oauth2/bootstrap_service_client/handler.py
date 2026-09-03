@@ -11,7 +11,7 @@ from application.ports import (
     Handler,
     OAuthClientRepository,
     OAuthClientSecretProcessor,
-    RoleScopeQuery,
+    ScopeDefinitionQuery,
 )
 from domain.authorization_principal import AuthorizationPrincipal
 from domain.enums import OAuthGrantType
@@ -30,7 +30,7 @@ class BootstrapServiceClientHandler(
     __slots__ = (
         "_client_repository",
         "_principal_repository",
-        "_role_scope_query",
+        "_scope_definition_query",
         "_secret_processor",
     )
 
@@ -38,13 +38,13 @@ class BootstrapServiceClientHandler(
         self,
         principal_repository: AuthorizationPrincipalRepository,
         client_repository: OAuthClientRepository,
-        role_scope_query: RoleScopeQuery,
+        scope_definition_query: ScopeDefinitionQuery,
         secret_processor: OAuthClientSecretProcessor,
     ) -> None:
         """Store caller-transaction adapters and the focused secret processor."""
         self._principal_repository = principal_repository
         self._client_repository = client_repository
-        self._role_scope_query = role_scope_query
+        self._scope_definition_query = scope_definition_query
         self._secret_processor = secret_processor
 
     async def __call__(
@@ -53,7 +53,7 @@ class BootstrapServiceClientHandler(
         /,
     ) -> BootstrapServiceClientResult:
         """Stage one exact bundle and return its raw secret only to the caller."""
-        scopes = await self._role_scope_query.get_scopes_by_exact_names(input_.scopes)
+        scopes = await self._scope_definition_query.get_by_exact_names(input_.scopes)
         existing_principal = await self._principal_repository.get_service_by_service_slug(
             input_.service_slug,
         )
@@ -91,7 +91,7 @@ class BootstrapServiceClientHandler(
             OAuthGrantType.CLIENT_CREDENTIALS,
             created_at=now,
         )
-        await self._client_repository.add_service_scope_grants(
+        await self._client_repository.add_principal_scope_grants(
             principal_id,
             scopes,
             created_at=now,
@@ -101,14 +101,14 @@ class BootstrapServiceClientHandler(
             scopes,
             created_at=now,
         )
-        await self._client_repository.add_service_audience_grants(
+        await self._client_repository.add_principal_audience_grants(
             principal_id,
-            input_.resources,
+            input_.audiences,
             created_at=now,
         )
         await self._client_repository.add_client_audience_grants(
             client_id,
-            input_.resources,
+            input_.audiences,
             created_at=now,
         )
         await self._client_repository.add_credential(credential)
