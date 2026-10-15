@@ -4,10 +4,10 @@
 and confidential clients, operator bootstrap, and short-lived scope-only RS256 access tokens
 through the Pokerlost JSON protocol over HTTPS.
 
-Read `docs/index.md` for the complete guide and `AGENTS.md` for normative engineering rules. Python
+Read the [documentation index](docs/index.md) for the complete guide and `AGENTS.md` for normative engineering rules. Python
 3.14 or newer is required.
 
-## Install
+## 🚀 Install
 
 The mandatory private `pypokerlost` dependency requires GitHub SSH read access:
 
