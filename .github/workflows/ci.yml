@@ -21,7 +21,8 @@ jobs:
         with:
           version: "0.12.15"
           enable-cache: true
-      - run: python3 scripts/check_documentation.py
+      - run: uv python install 3.14
+      - run: uv run --no-project --python 3.14 python3 scripts/check_documentation.py
       - run: uvx --from 'ruff==0.16.4' ruff check .
       - run: uvx --from 'ruff==0.16.4' ruff format --check .
       - name: SDK-backed gate status
