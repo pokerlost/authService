@@ -32,6 +32,6 @@ module suffix. New private identifiers use lowerCamelCase where no existing impo
 framework, or wire contract fixes the spelling. Request, response, persistence model, and service-owned projection
 details remain in the generated rulebook rather than being repeated here.
 
-The generated `AGENTS.md` is the normative source for the complete naming matrix, layer rules,
-allowed base-name exceptions, operation-package naming, and public API conventions. Keep this page
-as a tooling summary rather than a duplicate rulebook.
+The generated `AGENTS.md` owns project-specific naming exceptions, layer rules,
+operation-package naming, and public API conventions. Keep this page as a tooling summary rather
+than a duplicate rulebook.
