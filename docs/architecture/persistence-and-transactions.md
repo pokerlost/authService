@@ -27,14 +27,9 @@ statements. They do not create engines or sessions and do not complete the trans
 entities and public API response models remain separate artifacts. A service that needs a read
 projection defines that focused type in its persistence layer and translates it explicitly.
 
-The shared foundation supplies metadata and a narrow repository execution base without a generic
-result-reader wrapper or projection framework. authService adds concrete authorization/client
-models, repositories, and query adapters for responsibilities defined in `SERVICE.md`.
-
-Service-client bootstrap persists one service principal, confidential client, credential digest,
-grant-type permission, and exact principal/client scope and audience grants in one transaction.
-`POST /getToken` uses one request-owned transaction for authorization reads and signs through the
-lifespan-owned signer without persisting the access token.
+The pristine template supplies metadata and a narrow repository execution base but no generic
+result-reader wrapper, projection framework, concrete table, or business repository. Concrete
+adapters are added only for responsibilities defined in `SERVICE.md`.
 
 ## Remote calls
 
@@ -69,11 +64,4 @@ establish database readiness; see `docs/api/public-surface.md`.
 Alembic owns schema migrations against the shared `Base.metadata`. Every concrete ORM model must be
 imported through `persistence.database.models` so migration autogeneration can see it. Do not add a
 fake baseline model or migration to an otherwise pristine service. The command workflow and review
-discipline are documented in
-`docs/development/database-migrations.md`.
-
-The current head uses `scope_definitions`, `principal_scope_grants`, `client_scope_grants`,
-`principal_audience_grants`, `client_audience_grants`, and `client_credentials`. The forward
-migration after `d04e2b7c8a93` preserves stable scope IDs, materializes every legacy effective
-permission together with existing direct service grants, verifies row counts before destructive
-steps, and then removes the superseded authorization classification schema.
+discipline are documented in `docs/development/database-migrations.md`.

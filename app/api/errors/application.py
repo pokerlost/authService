@@ -16,11 +16,9 @@ from application.errors import (
     IntegrityError,
     InvalidAccessTokenError,
     InvalidOperationError,
-    InvalidRequestError,
     NotFoundError,
     TemporarilyUnavailableError,
 )
-from application.oauth2 import InvalidOAuthClientError
 
 from .response import error_response
 
@@ -33,20 +31,13 @@ async def handle_application_error(request: Request, exception: Exception) -> JS
         status_code = status.HTTP_404_NOT_FOUND
     elif isinstance(
         exception,
-        (
-            AccessTokenExpiredError,
-            AuthenticationRequiredError,
-            InvalidAccessTokenError,
-            InvalidOAuthClientError,
-        ),
+        (AuthenticationRequiredError, InvalidAccessTokenError, AccessTokenExpiredError),
     ):
         status_code = status.HTTP_401_UNAUTHORIZED
     elif isinstance(exception, InsufficientScopeError):
         status_code = status.HTTP_403_FORBIDDEN
     elif isinstance(exception, ConflictError):
         status_code = status.HTTP_409_CONFLICT
-    elif isinstance(exception, InvalidRequestError):
-        status_code = status.HTTP_400_BAD_REQUEST
     elif isinstance(exception, InvalidOperationError):
         status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
     elif isinstance(exception, TemporarilyUnavailableError):

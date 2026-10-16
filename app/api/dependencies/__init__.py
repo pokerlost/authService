@@ -4,18 +4,12 @@ from __future__ import annotations
 
 from .authorization import authorize_pokerlost_request
 from .database import DatabaseSession
-from .get_token import IssueClientCredentialsTokenHandlerDep
-from .resources import (
-    ApplicationResourcesDep,
-    ServiceAccessTokenSignerDep,
-)
+from .resources import ApplicationResourcesDep
 from .settings import SettingsDep
 
 __all__ = (
     "ApplicationResourcesDep",
     "DatabaseSession",
-    "IssueClientCredentialsTokenHandlerDep",
-    "ServiceAccessTokenSignerDep",
     "SettingsDep",
     "authorize_pokerlost_request",
 )

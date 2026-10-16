@@ -11,7 +11,7 @@ from service import SERVICE_ERROR_PREFIX
 from .response import error_response
 
 
-async def handle_http_error(request: Request, exception: Exception) -> JSONResponse:
+async def handle_http_error(_request: Request, exception: Exception) -> JSONResponse:
     """Replace framework detail responses with the universal safe error envelope."""
     if not isinstance(exception, StarletteHTTPException):
         raise TypeError("Unexpected exception registered as HTTPException")

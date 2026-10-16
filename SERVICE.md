@@ -1,73 +1,28 @@
 # authService
 
-SERVICE_NAME: authService
-SERVICE_SLUG: authservice
+`authService` is the proposed authority for Pokerlost principals, exact grants and access tokens. The present checkout is a **service foundation**, not an implemented token API.
 
-## Purpose
+## 🧭 Foundation available
 
-Pokerlost token authority and authorization-state owner.
+The current `serviceTemplate` supplies FastAPI composition, typed settings, safe Pokerlost errors, optional bearer-verifier port, PostgreSQL engine/session ownership, Alembic, observability, Docker and Helm. `GET /` and `GET /getOpenApi` are the only routes. The scope catalog is empty. No client/principal entity, token signer, `getToken` handler, operator bootstrap, private-key requirement, protected route or outbound SDK client is active.
 
-The public wire contract is the Pokerlost JSON protocol over HTTPS. Protected operations use a
-standard OAuth2 bearer header while business-operation successes and handled failures use
-`PokerlostResponse` JSON. `GET /getOpenApi` publishes the raw generated OpenAPI document.
+The newer local `serviceTemplate` composition now renders a `src/<service_name>/` foundation. This existing flat `app/` checkout has **not** been regenerated or migrated to that layout: its current cleanup, settings, scopes, and historical migrations remain intact. A Copier update requires reviewed old/new committed template refs and a separate compatibility migration; the local dirty template worktree is not such a release.
 
-## Responsibilities
+Earlier Alembic revisions remain immutable historical artifacts. They may create authorization tables on a fresh database even though current ORM metadata is empty. Do not autogenerate a drop migration or run an upgrade against production as part of this cleanup. No live database was accessed.
 
-- Own authorization principals and principal types.
-- Own authorization clients, exact scope definitions, direct principal/client scope grants, and
-  direct principal/client audience grants.
-- Own one-time login grants as a future business stage.
-- Issue short-lived service access tokens from body-supplied client credentials.
-- Own future human sessions, refresh-token families and revocation state.
-- Own service credentials and JWT signing metadata; JWKS publication is deferred.
-- Provide future idempotent authorization-state operations used by accountsService.
+## 📦 Planned ownership
 
-## Service-specific rules
+A later reviewed stage may own service and human principals, confidential clients, direct exact scope/audience grants, one-time login grants, sessions, refresh families and revocation. It may expose `POST /getToken` and other operations only after their complete persistence, authorization, key management, failure and compatibility contracts exist. Current `pypokerlost` methods and scopes remain future-facing SDK contracts, not evidence of server endpoints.
 
-- `public` means an operation has no access-token scope requirement; it is not a principal,
-  persisted classification, scope, or claim.
-- Human and service principals receive authority only through explicit direct scope grants.
-- Password hashes, password verification, usernames, nicknames and account lifecycle belong to
-  accountsService.
-- Runtime authorization uses exact Pokerlost scopes and never wildcard or identity-category
-  bypasses.
-- Downstream services validate short-lived JWT access tokens locally and do not call authService
-  for each protected request.
-- Pokerlost inter-service calls use `pypokerlost`; no direct HTTP fallback is allowed.
-- authService does not instantiate a client to itself or accountsService.
-- Existing applied migrations are immutable; persisted scope spelling changes use forward
-  migrations.
+`accountsService` owns usernames, nicknames and password hashes. `authService` must not read that database or implement password verification. Other services validate short-lived access tokens locally rather than call authService for every request. No shared database access, wildcard grant, identity-category bypass or allow-all authorization is installed.
 
-## Current service-client profile
+## 🔒 Deferred token rules
 
-- `authservice bootstrap-service-client` is the operator bootstrap boundary.
-- Bootstrap creates one active service principal, one bound confidential client, exact principal
-  and client scope grants, exact principal and client audience grants, and one digest-only
-  credential.
-- `POST /getToken` is the only implemented business operation.
-- Its request is `PokerlostRequest[GetTokenRequest]` JSON with `client_id`, `client_secret`, exact
-  `scopes`, and logical service `audience` inside `payload`.
-- Client credentials for this public access-token operation are accepted only in its typed JSON
-  payload. They are not access-token authorization metadata.
-- The audience is one exact service name such as `authService` or `accountsService` in the request,
-  persisted grants, response, and JWT `aud` claim.
-- FastAPI validates and serializes the route's plain success mapping as the
-  `PokerlostResponse[PokerlostToken]` wire body; failures use `PokerlostResponse[None]`. Retry
-  delay, when applicable, is represented only by `PokerlostResponse.retry_after`.
-- A service token is short-lived, contains service-only claims, and is not persisted.
-- The current flow creates no human session or refresh token.
+These are requirements for a future token implementation, **not current runtime behavior**:
 
-## Operation identifiers
+- Client credentials are accepted only in a typed `getToken` JSON payload, stored as a digest, and never logged.
+- Issuance requires the exact intersection of active principal/client scope and audience grants. Claims use one exact service audience; no wildcard or implicit category authority.
+- The prior candidate used short-lived RS256 tokens with a key of at least 2048 bits and a `kid`; signing material stays outside source and is never copied into an image. Revalidate the policy at implementation time. No PyJWT dependency or key mount is present now.
+- A public token operation does not accept an access-token bearer header as a substitute for its own client credentials. Future refresh, JWKS, session and revocation routes remain separate stages.
 
-- Operation identifiers match `^[a-z][A-Za-z0-9]*$` and paths are `/<operationId>`.
-- Current business operation: `getToken` at `POST /getToken`.
-- Reserved future SDK operations are `refreshToken`, `getJwks`, `provisionHuman`,
-  `setPrincipalStatus`, `replacePrincipalScopes`, and `issueLoginGrant`; they are not current
-  server endpoints.
-- Scope identifiers remain separate dotted lowerCamelCase values, for example
-  `auth.internal.provisionHuman` and `auth.internal.replacePrincipalScopes`.
-
-## Non-goals of the current stage
-
-Human login-grant exchange, refresh tokens, sessions, logout, JWKS publication, principal HTTP
-operations, retained signing keys, and signing-key rotation are not implemented.
+See the [current public surface](docs/api/public-surface.md) and [planned credential flow](docs/architecture/service-client-credentials.md). The private backup records removed code and configuration; it is not a database rollback plan.

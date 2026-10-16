@@ -1,4 +1,4 @@
-"""Temporarily unavailable application category."""
+"""Retryable temporary application availability error."""
 
 from __future__ import annotations
 

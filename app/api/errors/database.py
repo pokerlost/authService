@@ -12,8 +12,6 @@ from service import SERVICE_ERROR_PREFIX
 
 from .response import error_response
 
-_DATABASE_RETRY_AFTER_SECONDS = 1.0
-
 
 async def handle_database_unavailable(request: Request, exception: Exception) -> JSONResponse:
     """Return a sanitized PostgreSQL availability response."""
@@ -28,7 +26,6 @@ async def handle_database_unavailable(request: Request, exception: Exception) ->
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         error=f"{SERVICE_ERROR_PREFIX}_DATABASE_UNAVAILABLE",
         error_message="Required database is unavailable",
-        retry_after=_DATABASE_RETRY_AFTER_SECONDS,
     )
 
 

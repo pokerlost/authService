@@ -1,7 +1,6 @@
 # Quickstart
 
-Start authService locally, inspect its infrastructure endpoints, and review the service-token
-boundary.
+Start the generated service locally and inspect its two public infrastructure endpoints.
 
 ## Run
 
@@ -37,17 +36,10 @@ curl --fail-with-body http://127.0.0.1:8000/
 curl --fail-with-body http://127.0.0.1:8000/getOpenApi
 ```
 
-The response is the unmodified FastAPI OpenAPI document. It contains no project extension. A
-standard OAuth2 scheme and exact requirement appear naturally when an implemented protected route
-uses the authorization dependency.
+The response is the unmodified FastAPI OpenAPI document. When a concrete service has protected
+operations, the document contains their standard OAuth2 security metadata. With no protected
+operation, an unused security scheme may be absent.
 
-## Service-token flow
-
-Before requesting a token, an operator runs `authservice bootstrap-service-client` with exact
-scope and audience grants against PostgreSQL. The command emits the raw client secret once after
-commit; authService persists only its digest.
-
-The client submits `PokerlostRequest[GetTokenRequest]` JSON to `POST /getToken`. Credentials,
-scopes, and exact service-name audience exist only in `payload`; a successful access token appears only in
-`result.access_token`. See `docs/architecture/service-client-credentials.md` and
-`docs/api/public-surface.md` for the exact contract.
+The pristine service exposes no business operation. Before adding one, read
+`docs/api/operation-contract.md`, `docs/api/header-authorization.md`, and
+`docs/api/pokerlost-response.md`.

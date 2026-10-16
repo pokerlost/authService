@@ -7,7 +7,7 @@ internal state.
 
 | Source | Status | Stable error |
 | --- | --- | --- |
-| Missing/malformed bearer authorization | `401` | `POKERLOST_AUTHENTICATION_REQUIRED` |
+| Missing/malformed bearer authentication | `401` | `POKERLOST_AUTHENTICATION_REQUIRED` |
 | Invalid access token or audience | `401` | `POKERLOST_ACCESS_TOKEN_INVALID` |
 | Expired access token | `401` | `POKERLOST_ACCESS_TOKEN_EXPIRED` |
 | Missing exact scope | `403` | `POKERLOST_INSUFFICIENT_SCOPE` |
@@ -23,27 +23,9 @@ Framework not-found and method failures are also normalized. Public messages are
 text. Validation errors never echo submitted values.
 
 An unavailable required verifier is a composition error and fails closed as an internal failure.
-Concrete verifier adapters distinguish invalid and expired tokens. Expiry is rejected before
-handler execution; unexpected verifier failures remain internal instead of being mislabeled as
-caller failures.
+Concrete verifier adapters distinguish `InvalidAccessTokenError` and `AccessTokenExpiredError`;
+unexpected verifier failures remain internal instead of being mislabeled as caller failures.
 
-`retry_after` is null unless a typed retryable error has an explicit finite, non-negative delay in
-seconds. Central handlers pass it only through the JSON envelope; no HTTP retry header is emitted.
-
-## getToken failures
-
-Every handled failure at `POST /getToken` uses `PokerlostResponse[None]` and omits submitted JSON,
-credentials, and token values.
-
-| Condition | Error | Status |
-| --- | --- | ---: |
-| Missing or malformed envelope/payload | `AUTHSERVICE_VALIDATION_ERROR` | `422` |
-| Rejected client identity or credential | `AUTHSERVICE_INVALID_CLIENT` | `401` |
-| Client lacks service-client credential permission | `AUTHSERVICE_UNAUTHORIZED_CLIENT` | `400` |
-| Invalid or unauthorized exact scope | `AUTHSERVICE_INVALID_SCOPE` | `400` |
-| Invalid or unauthorized exact audience | `AUTHSERVICE_INVALID_TARGET` | `400` |
-| PostgreSQL temporarily unavailable | `AUTHSERVICE_DATABASE_UNAVAILABLE` | `503` |
-| Unexpected token-processing failure | `AUTHSERVICE_SERVER_ERROR` | `500` |
-
-Credential failures share one safe public message. Any retry delay is carried only by the body
-envelope.
+`TemporarilyUnavailableError` can carry a finite non-negative `retry_after` delay in seconds.
+Central mapping passes it to `error_response()` and the response body. It is null for other
+failures, and no retry guidance is encoded in headers.

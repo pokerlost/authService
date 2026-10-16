@@ -11,7 +11,7 @@ from service import SERVICE_ERROR_PREFIX
 from .response import error_response
 
 
-async def handle_validation_error(request: Request, exception: Exception) -> JSONResponse:
+async def handle_validation_error(_request: Request, exception: Exception) -> JSONResponse:
     """Return a stable validation failure without echoing submitted values."""
     if not isinstance(exception, RequestValidationError):
         raise TypeError("Unexpected exception registered as RequestValidationError")

@@ -1,5 +1,9 @@
 # authService
 
+The current checkout is a template-derived foundation with only infrastructure routes. Token
+issuance, operator bootstrap, and authorization persistence are planned in `SERVICE.md`, not active
+runtime behavior. Existing Alembic revisions remain historical and must not be rewritten.
+
 Before every task:
 
 1. Read `AGENTS.md` and `SERVICE.md`.

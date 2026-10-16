@@ -8,17 +8,6 @@ image:
 http:
   port: 8000
 
-token:
-  issuer: urn:pokerlost:authService
-  accessTokenTtlSeconds: 600
-
-jwtSigningKey:
-  enabled: true
-  secretName: authservice-jwt-signing-key
-  secretKey: private.pem
-  mountPath: /var/run/secrets/pokerlost/authservice/private.pem
-  keyId: authservice-rs256-1
-
 environment:
   AUTHSERVICE_APPLICATION__ENVIRONMENT: production
   AUTHSERVICE_APPLICATION__VERSION: "0.1.0"

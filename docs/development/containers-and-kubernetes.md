@@ -1,12 +1,10 @@
 # Containers and Kubernetes
 
-This page documents the generated Docker image and Helm chart workflows without treating them as
-an application deployment system.
+This page documents the generated Docker image and Helm chart workflows without treating them as an application deployment system.
 
 ## Docker build
 
-The builder resolves the pinned private `pypokerlost` Git source. BuildKit therefore requires an
-authorized SSH agent and a trusted GitHub `known_hosts` entry:
+The builder resolves the pinned private `pypokerlost` Git source. BuildKit therefore requires an authorized SSH agent and a trusted GitHub `known_hosts` entry:
 
 ```bash
 ssh-add -l
@@ -14,10 +12,7 @@ ssh-keygen -F github.com
 make docker-build
 ```
 
-`make docker-build` forwards the agent with `--ssh default` and mounts `$HOME/.ssh/known_hosts` as
-the `github_known_hosts` build secret. The Dockerfile marks both inputs as required. Do not copy a
-private key into the build context, image, `.env`, or chart values, and do not disable host
-verification.
+`make docker-build` forwards the agent with `--ssh default` and mounts `$HOME/.ssh/known_hosts` as the `github_known_hosts` build secret. The Dockerfile marks both inputs as required. Do not copy a private key into the build context, image, `.env`, or chart values, and do not disable host verification.
 
 The multi-stage image installs build-only Git and SSH tooling in the builder. The Python 3.14
 runtime contains the locked application environment, runs as numeric user and group `10001`, and
@@ -38,19 +33,14 @@ These targets wrap `helm lint` and `helm template`; they do not install or upgra
 
 The Deployment exposes the HTTP container port and configures both liveness and readiness probes as `GET /`. The root endpoint does not require a database query, so it checks that the application process can serve its base response without turning the probe into a business operation.
 
-Non-secret environment values come from the `environment` map. Database credentials and the
-optional Logfire token use `secretEnvironment` references to existing Kubernetes Secret names and
-keys. The stable root and OpenAPI paths and operation IDs are defined in source and do not appear
-as Helm configuration. Never place secret values in `environment`, a ConfigMap, a committed values
-file, or rendered documentation.
+Infrastructure operation IDs are stable source contracts and do not appear in Helm values or the
+ConfigMap. Non-secret environment values come from the `environment` map. Database credentials and
+the optional Logfire token use `secretEnvironment` references to existing Kubernetes Secret names
+and keys. Never place secret values in `environment`, a ConfigMap, a committed values file, or
+rendered documentation.
 
-The service-owned `token` values supply the exact issuer and access-token TTL. `jwtSigningKey`
-supplies the non-secret key ID, mounted path, existing Secret name, and Secret data key. Only the
-selected private-key entry is mounted read-only; PEM material never enters ConfigMap data,
-environment values, the image, or committed chart values.
-
-The current chart contains no outbound target, outbound credential, token storage, or retry
-values. A future real target may add its base URL and request timeout through the existing
+The pristine chart contains no outbound target, credential, token storage, or retry values. A
+concrete service with a real target may add its base URL and request timeout through the existing
 non-secret `environment` or explicit ConfigMap convention. Credential and token-store inputs remain
 service-owned and are wired only when an implemented use case needs them; secrets use
 `secretEnvironment` and existing Kubernetes Secret references. `PokerlostRetryPolicy` values never

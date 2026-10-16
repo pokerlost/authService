@@ -1,13 +1,13 @@
 # authService
 
-`authService` is the Pokerlost token authority. It provides PostgreSQL-backed service principals
-and confidential clients, operator bootstrap, and short-lived scope-only RS256 access tokens
-through the Pokerlost JSON protocol over HTTPS.
+`authService` is a Pokerlost FastAPI service foundation with PostgreSQL, bearer-header mechanisms,
+the canonical JSON envelope, observability, Docker, and Helm. Token and grant behavior is planned
+in [SERVICE.md](SERVICE.md) but absent from the current runtime.
 
-Read the [documentation index](docs/index.md) for the complete guide and `AGENTS.md` for normative engineering rules. Python
+Read `docs/index.md` for the complete guide and `AGENTS.md` for normative engineering rules. Python
 3.14 or newer is required.
 
-## 🚀 Install
+## Install
 
 The mandatory private `pypokerlost` dependency requires GitHub SSH read access:
 
@@ -19,8 +19,7 @@ uv lock
 uv sync --locked
 ```
 
-Replace local placeholders in `.env`, provide an RSA private key at the configured
-`AUTHSERVICE_JWT__PRIVATE_KEY_PATH`, and never store secrets or private keys in the repository.
+Replace local placeholders in `.env`; never store secrets or private keys in the repository.
 
 ## Run
 
@@ -28,37 +27,21 @@ Replace local placeholders in `.env`, provide an RSA private key at the configur
 make run
 ```
 
-## HTTP surface
+## Base endpoints
 
 | method | path | operation_id | response |
 | --- | --- | --- | --- |
 | `GET` | `/` | `getRoot` | `PokerlostResponse[None]` |
-| `GET` | `/getOpenApi` | `getOpenApi` | OpenAPI 3.1 document |
-| `POST` | `/getToken` | `getToken` | `PokerlostResponse[PokerlostToken]` |
+| `GET` | `/getOpenApi` | `getOpenApi` | OpenAPI JSON document |
 
-The infrastructure endpoints and `getToken` have no access-token scope requirement. `getToken`
-receives client credentials, exact scopes, and an exact target service name only in
-`PokerlostRequest.payload`; these operation credentials are not an access-token header.
+These public infrastructure endpoints accept no body or authentication. Every business operation
+uses `POST /<operationId>` and a typed `PokerlostRequest` JSON body. Protected calls add only the
+standard `Authorization: Bearer <access-token>` header.
 
-## Bootstrap a service client
-
-Create one service principal, confidential client, exact grants, and first credential in a local
-PostgreSQL transaction:
-
-```bash
-authservice bootstrap-service-client \
-  --service-slug accountsservice \
-  --scope auth.internal.provisionHuman \
-  --scope auth.internal.setPrincipalStatus \
-  --scope auth.internal.replacePrincipalScopes \
-  --scope auth.internal.issueLoginGrant \
-  --audience authService
-```
-
-The command prints the generated client ID and raw secret only after commit. Store that secret
-immediately; authService persists only its digest. authService creates no outbound client to
-itself or accountsService. See `docs/api/public-surface.md` and
-`docs/architecture/service-client-credentials.md`.
+The pristine service includes an empty exact-scope catalog and a local-verifier port, but no fake
+verifier, outbound client, credential, token store, or retry configuration. See
+[header authorization](docs/api/header-authorization.md) and
+[inter-service clients](docs/architecture/inter-service-clients.md).
 
 ## Development and deployment
 

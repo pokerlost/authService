@@ -36,5 +36,10 @@ PYTHONPATH=app uv run --locked alembic check
 Add a model and migration only for a responsibility defined in `SERVICE.md`, and never edit an
 already-applied shared revision to represent a later schema change.
 
+Earlier authorization/client revisions are historical artifacts; the current model registry is
+empty. They may create legacy tables on a fresh database. Do not use `alembic check` or
+autogenerate as a deletion plan, and do not run upgrade/downgrade against production as part of
+foundation cleanup.
+
 For transaction behavior at runtime, see
 `docs/architecture/persistence-and-transactions.md`.

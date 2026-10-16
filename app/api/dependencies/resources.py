@@ -7,7 +7,6 @@ from typing import Annotated
 from fastapi import Depends, Request
 
 from api.resources import ApplicationResources
-from application.ports import ServiceAccessTokenSigner
 
 
 def _resolve_application_resources(request: Request) -> ApplicationResources:
@@ -21,17 +20,4 @@ def _resolve_application_resources(request: Request) -> ApplicationResources:
 type ApplicationResourcesDep = Annotated[
     ApplicationResources,
     Depends(_resolve_application_resources),
-]
-
-
-def _resolve_service_access_token_signer(
-    resources: ApplicationResourcesDep,
-) -> ServiceAccessTokenSigner:
-    """Return the lifespan-owned service access-token signer."""
-    return resources.service_access_token_signer
-
-
-type ServiceAccessTokenSignerDep = Annotated[
-    ServiceAccessTokenSigner,
-    Depends(_resolve_service_access_token_signer),
 ]

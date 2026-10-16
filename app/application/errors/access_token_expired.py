@@ -8,7 +8,7 @@ from .base import ApplicationError
 
 
 class AccessTokenExpiredError(ApplicationError):
-    """The local verifier rejected an access token solely because it expired."""
+    """The supplied access token expired before endpoint execution."""
 
     error_code: ClassVar[str] = "POKERLOST_ACCESS_TOKEN_EXPIRED"
     public_message: ClassVar[str] = "The access token has expired."

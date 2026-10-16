@@ -18,7 +18,7 @@ Run targets from the repository root. The Makefile checks required executables b
 | `format-check` | No | Check Ruff formatting without rewriting source. |
 | `lint` | No | Run Ruff lint checks. |
 | `typecheck` | No | Run strict mypy. |
-| `compile` | No | Compile-check application, Alembic, and checker Python source. |
+| `compile` | No | Compile-check application, Alembic, and product-tool Python source. |
 | `docs-check` | No | Validate the generated documentation contract. |
 | `pre-commit` | Potentially | Run every configured hook across all files; file-hygiene and formatter hooks can repair files. |
 | `check` | No | Run the regular non-formatting local checks. |
@@ -69,25 +69,6 @@ env PYTHONPATH=app uv run --locked gunicorn "api.application:create_app()" \
 
 The Makefile variables `HTTP_HOST`, `HTTP_PORT`, `GUNICORN_WORKERS`, `GUNICORN_TIMEOUT`, `GUNICORN_GRACEFUL_TIMEOUT`, `GUNICORN_KEEPALIVE`, and `GUNICORN_FORWARDED_ALLOW_IPS` override these defaults.
 
-## Operator commands
-
-The installed `authservice` Typer application retains `run` and adds the service-owned
-`bootstrap-service-client` command. A typical bootstrap invocation is:
-
-```bash
-authservice bootstrap-service-client \
-  --service-slug accountsservice \
-  --scope auth.internal.provisionHuman \
-  --scope auth.internal.setPrincipalStatus \
-  --scope auth.internal.replacePrincipalScopes \
-  --scope auth.internal.issueLoginGrant \
-  --audience authService
-```
-
-At least one `--scope` and one `--audience` are required; `--client-id` optionally supplies a
-canonical UUID. This command is intentionally not wrapped by a Make target. Its transaction and
-one-time secret behavior are documented in `docs/architecture/service-client-credentials.md`.
-
 ## Source and documentation checks
 
 | Target | Direct command |
@@ -103,7 +84,8 @@ one-time secret behavior are documented in `docs/architecture/service-client-cre
 | `check-full` | `check`, then `pre-commit` |
 
 Use `make format` deliberately when source repair is intended. Use `make check` for the regular source-preserving verification set.
-Tests are added or run only when the user explicitly requests them for the task.
+Tests are added or changed only when a task explicitly requests them. The generated foundation has
+no permanent test suite or architecture checker script.
 
 ## Database commands
 
@@ -140,5 +122,4 @@ helm lint deploy/helm/authservice
 helm template authservice deploy/helm/authservice
 ```
 
-See `docs/development/containers-and-kubernetes.md` for SSH, runtime, probe, and Secret
-requirements.
+See `docs/development/containers-and-kubernetes.md` for SSH, runtime, probe, and Secret requirements.

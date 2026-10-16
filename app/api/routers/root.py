@@ -1,4 +1,4 @@
-"""Parameterless service root router."""
+"""Public service root router."""
 
 from __future__ import annotations
 
@@ -22,5 +22,5 @@ router = APIRouter(tags=["service"])
     },
 )
 async def get_service_root() -> dict[str, object]:
-    """Return the minimal root success contract."""
+    """Return plain data for response-model serialization."""
     return {"ok": True}

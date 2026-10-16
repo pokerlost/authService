@@ -13,9 +13,7 @@ from service import SERVICE_ENV_PREFIX
 from .application import ApplicationSettings
 from .database import DatabaseSettings
 from .http import HTTPSettings
-from .jwt import JWTSettings
 from .logfire import LogfireSettings
-from .token import TokenSettings
 
 
 class Settings(BaseSettings):
@@ -36,13 +34,11 @@ class Settings(BaseSettings):
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     database: DatabaseSettings
     http: HTTPSettings = Field(default_factory=HTTPSettings)
-    jwt: JWTSettings
     logfire: LogfireSettings = Field(default_factory=LogfireSettings)
-    token: TokenSettings
 
     @model_validator(mode="after")
-    def validate_service_requirements(self) -> Self:
-        """Fail fast when required service runtime configuration is incomplete."""
+    def validate_production_observability(self) -> Self:
+        """Fail fast when production telemetry delivery is disabled."""
         if self.application.environment is Environment.PRODUCTION and not (
             self.logfire.enabled and self.logfire.send_to_logfire
         ):

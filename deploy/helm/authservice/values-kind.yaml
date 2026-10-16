@@ -3,17 +3,6 @@ replicaCount: 1
 image:
   pullPolicy: IfNotPresent
 
-token:
-  issuer: urn:pokerlost:authService
-  accessTokenTtlSeconds: 600
-
-jwtSigningKey:
-  enabled: true
-  secretName: authservice-local-jwt-signing-key
-  secretKey: private.pem
-  mountPath: /var/run/secrets/pokerlost/authservice/private.pem
-  keyId: authservice-rs256-local-1
-
 environment:
   AUTHSERVICE_APPLICATION__ENVIRONMENT: development
   AUTHSERVICE_APPLICATION__VERSION: "0.1.0"

@@ -1,6 +1,6 @@
 # Configuration
 
-This page documents the service settings groups and their environment variable mapping.
+This page documents the generated service settings groups and their environment variable mapping.
 
 `Settings` loads `.env` and process environment values with the `AUTHSERVICE_` prefix.
 Nested fields use a double underscore, so the general form is:
@@ -13,11 +13,10 @@ For example, `database.url` maps to `AUTHSERVICE_DATABASE__URL`. Names are
 case-insensitive, but `.env.example` uses uppercase names consistently. Process environment values
 override values from `.env` according to Pydantic Settings behavior.
 
-## Infrastructure operations
+## Stable infrastructure operations
 
-`GET /` uses operation ID `getRoot`, and `GET /getOpenApi` uses `getOpenApi`. These paths and
-operation IDs are stable source-defined API contracts, not settings, environment variables, or
-Helm values.
+`getRoot` and `getOpenApi` are source-defined API contracts. They have no settings, environment
+variables, Helm values, or ConfigMap entries. Deployment configuration cannot rename API operations.
 
 ## `application`
 
@@ -34,29 +33,6 @@ Production configuration fails at startup unless Logfire and remote delivery are
 | --- | --- | --- |
 | `host` | `AUTHSERVICE_HTTP__HOST` | Local HTTP bind address. |
 | `port` | `AUTHSERVICE_HTTP__PORT` | Local HTTP port from `1` through `65535`. |
-
-## `token`
-
-| Field | Environment variable | Purpose |
-| --- | --- | --- |
-| `issuer` | `AUTHSERVICE_TOKEN__ISSUER` | Required exact, non-empty service-token issuer. |
-| `access_token_ttl_seconds` | `AUTHSERVICE_TOKEN__ACCESS_TOKEN_TTL_SECONDS` | Service access-token lifetime from `60` through `3600` seconds. |
-
-The example TTL is `600` seconds. The issuer is copied exactly into the JWT `iss` claim and is not
-silently normalized.
-
-## `jwt`
-
-| Field | Environment variable | Purpose |
-| --- | --- | --- |
-| `private_key_path` | `AUTHSERVICE_JWT__PRIVATE_KEY_PATH` | Required filesystem path to the mounted PEM private key. |
-| `key_id` | `AUTHSERVICE_JWT__KEY_ID` | Required JWT `kid` containing only safe ASCII token characters. |
-
-`key_id` is between one and 128 characters and uses only ASCII letters, digits, `.`, `_`, and `-`.
-The path is configuration, not key material. Settings parsing does not read the file; application
-lifespan loads it once while constructing the signer and fails startup when it is missing, is not a
-PEM RSA private key, or uses an RSA key smaller than 2048 bits. The RS256 algorithm is a code
-invariant and is not configurable.
 
 ## `database`
 
@@ -80,19 +56,18 @@ The database URL must include a username, password, host, and database. It is tr
 | `minimum_level` | `AUTHSERVICE_LOGFIRE__MINIMUM_LEVEL` | Minimum recorded level. |
 | `token` | `AUTHSERVICE_LOGFIRE__TOKEN` | Optional write token, required when remote delivery is enabled. |
 
-Keep the signing private key, Logfire token, and database URL outside source control. Kubernetes
-mounts the key from a Secret and supplies the other values through Secret references rather than
-the chart ConfigMap; see
+Keep the Logfire token and database URL outside source control. Kubernetes supplies them through
+Secret references rather than the chart ConfigMap; see
 `docs/development/containers-and-kubernetes.md`.
 
 ## Concrete outbound targets
 
-authService has no outbound target settings, credentials, token storage, or retry
+The pristine service has no outbound target settings, credentials, token storage, or retry
 configuration. When `SERVICE.md` declares a real target, add one focused immutable settings group
 named for that target and one explicitly named field on root `Settings`. A target base URL and
-request timeout are deployment configuration. Token credentials, storage, refresh, requested exact
-scopes, and audience remain service-owned and are added only when the implemented use case needs
-them.
+request timeout are deployment configuration. Token credentials, persistent encrypted storage,
+distributed refresh coordination, requested exact scopes, and audience remain service-owned and
+are added only when the implemented use case needs them.
 
 Do not expose `PokerlostRetryPolicy` values as settings; its transport algorithm is fixed by the
 SDK. Do not automatically add authService configuration to every service. The complete ownership

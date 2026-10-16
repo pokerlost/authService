@@ -11,7 +11,6 @@ from application.ports import PokerlostTokenVerifier
 from configuration import Settings
 from observability import instrument_database
 from persistence.database import create_database_engine, create_session_factory
-from security import PyJWTServiceAccessTokenSigner
 from service import SERVICE_NAME
 
 from .resources import ApplicationResources
@@ -31,7 +30,6 @@ def create_lifespan(
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        service_access_token_signer = PyJWTServiceAccessTokenSigner(settings.jwt)
         engine = create_database_engine(
             settings.database,
             application_name=SERVICE_NAME,
@@ -40,7 +38,6 @@ def create_lifespan(
         application.state.resources = ApplicationResources(
             engine=engine,
             session_factory=create_session_factory(engine),
-            service_access_token_signer=service_access_token_signer,
             token_verifier=token_verifier,
         )
         application.state.settings = settings
