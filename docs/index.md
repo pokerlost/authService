@@ -21,11 +21,12 @@ development workflows.
 
 ## Architecture
 
+- `docs/architecture.md` — current composed foundation and package lifecycle.
 - `docs/architecture/overview.md` — architecture overview.
 - `docs/architecture/request-lifecycle.md` — request lifecycle.
 - `docs/architecture/persistence-and-transactions.md` — persistence and transactions.
 - `docs/architecture/inter-service-clients.md` — outbound client, token ownership, and retry.
-- [Planned service-client credentials](architecture/service-client-credentials.md) — deferred authService behavior.
+- `docs/architecture/service-client-credentials.md` — deferred authService credential behavior.
 
 ## Development
 

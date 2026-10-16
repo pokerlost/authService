@@ -23,7 +23,7 @@ RUN --mount=type=ssh,required=true \
     --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-project
 
-COPY app ./app
+COPY src ./src
 RUN --mount=type=ssh,required=true \
     --mount=type=secret,id=github_known_hosts,target=/root/.ssh/known_hosts,required=true \
     --mount=type=cache,target=/root/.cache/uv \
@@ -35,10 +35,8 @@ LABEL org.opencontainers.image.title="authService" \
     org.opencontainers.image.version="0.1.0"
 
 ENV PATH=/service/.venv/bin:$PATH \
-    PYTHONPATH=/service/app \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    GUNICORN_CMD_ARGS="--bind=0.0.0.0:8000 --workers=2 --timeout=30 --graceful-timeout=30 --keep-alive=5 --forwarded-allow-ips=127.0.0.1 --access-logfile=- --error-logfile=- --capture-output --worker-tmp-dir=/tmp"
+    PYTHONUNBUFFERED=1
 
 WORKDIR /service
 
@@ -46,12 +44,11 @@ RUN groupadd --gid 10001 service \
     && useradd --uid 10001 --gid service --no-create-home --shell /usr/sbin/nologin service
 
 COPY --from=builder /service/.venv /service/.venv
-COPY app ./app
-COPY alembic ./alembic
+COPY migrations ./migrations
 COPY alembic.ini ./
 
 USER 10001:10001
 
 EXPOSE 8000
 
-CMD ["gunicorn", "api.application:create_app()", "--worker-class", "uvicorn_worker.UvicornWorker"]
+CMD ["uvicorn", "authService.app:createApp", "--factory", "--host", "0.0.0.0", "--port", "8000"]

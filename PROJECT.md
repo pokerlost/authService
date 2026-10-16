@@ -1,0 +1,3 @@
+# authService ownership
+
+Describe the project's purpose, public contract, data and security boundaries, and decisions here. This file belongs to the generated project and Copier skips it on update. Replace this guidance with facts before presenting the project publicly.

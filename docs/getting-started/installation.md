@@ -1,34 +1,31 @@
 # Installation
 
-This page prepares a local checkout of `authService` with its locked Python 3.14 environment
-and required configuration.
+This page prepares a local checkout of `authService` with its locked Python 3.14 environment.
 
 ## Prerequisites
 
-Install Python 3.14 or newer, `uv`, Git, and access to the PostgreSQL instance used for local
-development. PostgreSQL is an unconditional part of the service stack, but the application does
-not start it.
+Install Python 3.14 or newer, `uv`, and Git. An isolated PostgreSQL instance is needed to
+verify readiness or run migrations. The application does not start one.
 
 The project installs `pypokerlost` from a pinned private GitHub SSH source. Confirm that an authorized key is available through the SSH agent and that GitHub recognizes it:
 
 ```bash
 ssh-add -l
-ssh -T git@github.com
 ```
 
-GitHub can report successful authentication while declining shell access, so `ssh -T` may return a non-zero status even when the identity check succeeds. Never copy a private key into the repository or place one in `.env`.
+Never copy a private key into the repository or place one in a settings file.
 
 ## Configure and install
 
 Run the setup from the repository root:
 
 ```bash
-cp .env.example .env
-uv lock
 uv sync --locked
 ```
 
-Replace the local placeholders in `.env` without committing credentials. The first `uv lock` resolves the pinned private SDK source and writes `uv.lock`; subsequent installs use `uv sync --locked` so the environment cannot silently drift from that lock.
+Supply `DATABASE_URL` through a private process environment when running the service.
+The application does not load `.env` automatically. `uv.lock` is committed; run `uv lock`
+only when deliberately changing dependencies.
 
 See `docs/getting-started/configuration.md` for the environment variable contract and
 `docs/development/commands.md` for the Makefile wrappers.

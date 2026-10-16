@@ -1,43 +1,7 @@
-# Project status
+# Current status
 
-This page records the current local `authService` foundation derived from `serviceTemplate`.
+`authService` is a template-derived infrastructure foundation. The installed package is `src/authService/`; the old flat `app/` runtime was retired after its previous foundation cleanup. `GET /`, `GET /getOpenApi`, `/health/live`, and `/health/ready` are the only registered paths. No token issuance, principal/grant persistence, verifier implementation, business operation, or subject table is active.
 
-## Ready foundation
+The existing SDK contains future-facing client contracts; they do not prove corresponding server routes exist. The empty scope catalog and verifier boundary remain fail-closed. PostgreSQL is configured for this service; readiness returns 503 when its required connection fails.
 
-The generated repository provides the FastAPI composition root, typed configuration, a
-server-generated request ID, canonical response errors, Logfire instrumentation, mandatory
-PostgreSQL transaction ownership, Alembic, Docker, Helm, and the locked quality workflow.
-
-The two base endpoints are ready with the `.env.example` values:
-
-- `GET /` returns the service root envelope;
-- `GET /getOpenApi` publishes the raw FastAPI OpenAPI document.
-
-Their operation IDs are `getRoot` and `getOpenApi`; the root HTTP path is always `/`.
-
-Their exact contract is listed in `docs/api/public-surface.md`.
-
-## Intentionally absent
-
-Business functionality is absent by design. The runtime defines no concrete business
-operation, entity, table, remote-service client, concrete token verifier, credential,
-token store, or service-specific retry configuration. The empty domain scope catalog, OAuth2
-dependency, verifier port, and fail-closed bearer behavior are reusable foundation rather than
-business policy. Because no route is protected, the production OpenAPI document need not publish
-an unused security scheme.
-
-The SDK transport/middleware boundary and explicit `PokerlostRetryPolicy` opt-in are documented in
-`docs/architecture/inter-service-clients.md`. These are extension points, not default runtime
-resources: a pristine service has no target URL, client ID, client secret, scope bundle, token
-state, refresher, or unused client.
-
-Earlier Alembic revisions remain immutable history and may create authorization tables on a fresh
-database. The current ORM metadata is empty. Do not infer a safe drop migration from it; no
-production database was touched during foundation cleanup.
-
-`SERVICE.md` must define the concrete service purpose, responsibilities, and service-specific rules
-before those capabilities are added. Future domain documentation should describe only
-responsibilities established there and must be listed in `docs/index.md` when introduced.
-
-See `docs/architecture/overview.md` for layer ownership and
-`docs/development/contributing.md` for change discipline.
+Historical revisions are retained unchanged under `migrations/versions/` and may create old tables on a new database. The file migration and revision graph can be checked without a database; actual upgrade/readiness success requires a separate disposable PostgreSQL instance. Existing Docker/Helm files are adapted to the package path but need a permitted image/chart run before deployment claims. No release or remote publication is implied.

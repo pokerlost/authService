@@ -26,7 +26,7 @@ Do not create title-only pages, placeholder pages, or pages that require an earl
 ## Inline code
 
 Use backticks for classes, functions, operation IDs, HTTP paths, schema fields, filenames, commands,
-options, and literal values. Examples include `PokerlostResponse`, `create_app()`,
+options, and literal values. Examples include `PokerlostResponse`, `createApp()`,
 `getOpenApi`, `/getOpenApi`, `error_message`, `pyproject.toml`, `make check`, and
 `null`.
 

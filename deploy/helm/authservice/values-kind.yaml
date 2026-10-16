@@ -4,23 +4,13 @@ image:
   pullPolicy: IfNotPresent
 
 environment:
-  AUTHSERVICE_APPLICATION__ENVIRONMENT: development
-  AUTHSERVICE_APPLICATION__VERSION: "0.1.0"
-  AUTHSERVICE_LOGFIRE__ENABLED: "true"
-  AUTHSERVICE_LOGFIRE__SEND_TO_LOGFIRE: "false"
-  AUTHSERVICE_LOGFIRE__CONSOLE: "true"
-  AUTHSERVICE_LOGFIRE__MINIMUM_LEVEL: info
+  AUTHSERVICE_LOGLEVEL: INFO
 
 secretEnvironment:
-  AUTHSERVICE_LOGFIRE__TOKEN:
-    enabled: false
-  AUTHSERVICE_DATABASE__URL:
+  DATABASE_URL:
     enabled: true
     name: authservice-local-runtime
     key: database-url
-
-gunicorn:
-  workers: 1
 
 resources:
   requests:

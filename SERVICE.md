@@ -4,9 +4,9 @@
 
 ## 🧭 Foundation available
 
-The current `serviceTemplate` supplies FastAPI composition, typed settings, safe Pokerlost errors, optional bearer-verifier port, PostgreSQL engine/session ownership, Alembic, observability, Docker and Helm. `GET /` and `GET /getOpenApi` are the only routes. The scope catalog is empty. No client/principal entity, token signer, `getToken` handler, operator bootstrap, private-key requirement, protected route or outbound SDK client is active.
+The current `serviceTemplate` supplies FastAPI composition, typed settings, safe Pokerlost errors, optional bearer-verifier port, PostgreSQL engine/session ownership, Alembic, logging, Docker and Helm. `GET /`, `GET /getOpenApi`, and health probes are the only routes. The scope catalog is empty. No client/principal entity, token signer, `getToken` handler, operator bootstrap, private-key requirement, protected route or outbound SDK client is active.
 
-The newer local `serviceTemplate` composition now renders a `src/<service_name>/` foundation. This existing flat `app/` checkout has **not** been regenerated or migrated to that layout: its current cleanup, settings, scopes, and historical migrations remain intact. A Copier update requires reviewed old/new committed template refs and a separate compatibility migration; the local dirty template worktree is not such a release.
+The committed `serviceTemplate` source has been applied to `src/authService/` after the earlier foundation cleanup. Project-owned rules, the empty exact scope catalog, and historical revisions were preserved; the five revision files moved byte-for-byte into `migrations/versions/`. This file migration is local and is not a release or a database upgrade. The retired flat `app/` implementation remains recoverable from the prior local commit and private backup.
 
 Earlier Alembic revisions remain immutable historical artifacts. They may create authorization tables on a fresh database even though current ORM metadata is empty. Do not autogenerate a drop migration or run an upgrade against production as part of this cleanup. No live database was accessed.
 

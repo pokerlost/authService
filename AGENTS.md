@@ -2,7 +2,10 @@
 
 The current checkout is a template-derived foundation with only infrastructure routes. Token
 issuance, operator bootstrap, and authorization persistence are planned in `SERVICE.md`, not active
-runtime behavior. Existing Alembic revisions remain historical and must not be rewritten.
+runtime behavior. The installed package lives under `src/authService/`. Historical Alembic
+revisions are retained byte-for-byte under `migrations/versions/` and must not be rewritten.
+`PROJECT.md`, `SERVICE.md`, settings, scopes, service code, and revisions are project-owned.
+This stage adds no product endpoints, fake verifier, new test dependencies, CI, or checker scripts.
 
 Before every task:
 
@@ -49,7 +52,7 @@ latest direct user requirement
   contain an access token, headers map, method binding, or middleware state.
 - Client credentials belong only in the `getToken` JSON payload. A refresh token belongs only in
   the `refreshToken` JSON payload. Do not prepend a token type string.
-- Every flat `app/api/routers/<operation>.py` module owns one module-level
+- Every `src/authService/routers/<operation>.py` module owns one module-level
   `router = APIRouter(...)`, and its decorated endpoints are module-level functions. Static router
   factories, nested endpoints, one-directory-per-router layouts, route constants used once,
   imperative registration, and post-hoc route mutation are forbidden.
@@ -79,7 +82,7 @@ latest direct user requirement
 - Pokerlost scopes use dot-separated lowerCamelCase segments and match
   `^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)+$`. Wildcards and identity-category bypasses are
   forbidden.
-- Keep exactly one service-owned `Scopes(StrEnum)` catalog in `app/domain/enums/scopes.py`; its
+- Keep exactly one service-owned `Scopes(StrEnum)` catalog in `src/authService/scopes.py`; its
   focused description mapping is the source for standard OpenAPI OAuth2 metadata.
 - SDK-owned shared wire enums live only in `pypokerlost/enums/`; API adapters map them to local
   domain enums when both representations are required.
@@ -175,11 +178,12 @@ PokerlostRetryMiddleware
 
 - Application values and ports remain transport-independent. Ports do not expose FastAPI,
   SQLAlchemy sessions, or concrete SDK clients.
-- Reuse `Command`, `Query`, `Result`, and the structural asynchronous `Handler` Protocol.
+- Introduce application values and ports only for implemented behavior; do not populate an empty
+  foundation with placeholder command or repository layers.
 - Routes translate API schemas to application values; public models do not double as domain or ORM
   models.
-- Service-owned enums live under `app/domain/enums/`; do not create top-level `app/enums/` or
-  transport/persistence duplicates.
+- Service-owned scopes live in `src/authService/scopes.py`; do not create transport or persistence
+  duplicates.
 - A request-owned SQLAlchemy session owns one transaction. Routes, handlers, repositories, and
   query adapters do not commit or roll back directly.
 - Keep repositories focused. When a service needs read projections, keep them separate from ORM

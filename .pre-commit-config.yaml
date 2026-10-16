@@ -30,7 +30,7 @@ repos:
 
       - id: mypy
         name: mypy
-        entry: env PYTHONPATH=app uv run --locked mypy
+        entry: uv run --locked mypy
         language: system
         pass_filenames: false
 

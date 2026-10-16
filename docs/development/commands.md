@@ -1,125 +1,26 @@
 # Development commands
 
-This page is the canonical reference for the generated Makefile targets and the direct tools they wrap.
+This page records the current `src/authService/` foundation commands. Supply `DATABASE_URL` through a private process environment for startup; no local `.env` is loaded automatically.
 
-Run targets from the repository root. The Makefile checks required executables before invoking them, uses the locked `uv` environment for Python tools, and keeps Docker, Helm, and database operations explicit.
-
-## Target summary
-
-| Target | Mutates project-owned source? | Responsibility |
-| --- | --- | --- |
-| `help` | No | List targets from their `##` descriptions. |
-| `install` | No | Synchronize the environment from `uv.lock`. |
-| `lock` | Yes | Resolve dependencies and write `uv.lock`. |
-| `lock-check` | No | Verify that `uv.lock` matches project metadata. |
-| `run` | No | Start the local Uvicorn development process. |
-| `serve` | No | Start Gunicorn with Uvicorn workers. |
-| `format` | Yes | Apply Ruff fixes and formatting. |
-| `format-check` | No | Check Ruff formatting without rewriting source. |
-| `lint` | No | Run Ruff lint checks. |
-| `typecheck` | No | Run strict mypy. |
-| `compile` | No | Compile-check application, Alembic, and product-tool Python source. |
-| `docs-check` | No | Validate the generated documentation contract. |
-| `pre-commit` | Potentially | Run every configured hook across all files; file-hygiene and formatter hooks can repair files. |
-| `check` | No | Run the regular non-formatting local checks. |
-| `check-full` | Potentially | Run `check` and then all pre-commit hooks. |
-| `db-upgrade` | Database | Upgrade PostgreSQL to Alembic head. |
-| `db-downgrade` | Database | Downgrade PostgreSQL by one revision. |
-| `db-revision` | Yes | Autogenerate a migration revision. |
-| `docker-build` | Docker | Build the runtime image with private-SDK SSH forwarding. |
-| `helm-lint` | No | Lint the service Helm chart. |
-| `helm-template` | No | Render the service Helm chart locally. |
-
-`make check` does not run Docker, Helm, PostgreSQL migrations, or other network-dependent operations. `make check-full` adds pre-commit but leaves those explicit operations separate.
-
-## Environment and lock commands
-
-| Target | Direct command |
-| --- | --- |
-| `install` | `uv sync --locked` |
-| `lock` | `uv lock` |
-| `lock-check` | `uv lock --check` |
-
-`make help` runs an `awk` formatter over the Makefile target lines containing `##`; the displayed list is not maintained separately.
-
-## Run commands
-
-`make run` wraps:
+## 🚀 Run
 
 ```bash
-env PYTHONPATH=app uv run --locked authservice run
+uv sync --locked
+make run
 ```
 
-`make serve` wraps the configured Gunicorn command:
+`make run` starts `uvicorn authService.app:createApp --factory --reload` on loopback. `make serve` runs the same factory without reload; set `HTTP_HOST` and `HTTP_PORT` explicitly for a trusted deployment. No business route or token issuer is started.
+
+## 🛠 Checks
 
 ```bash
-env PYTHONPATH=app uv run --locked gunicorn "api.application:create_app()" \
-  --worker-class uvicorn_worker.UvicornWorker \
-  --bind "0.0.0.0:8000" \
-  --workers "2" \
-  --timeout "30" \
-  --graceful-timeout "30" \
-  --keep-alive "5" \
-  --forwarded-allow-ips "127.0.0.1" \
-  --access-logfile - \
-  --error-logfile - \
-  --capture-output \
-  --worker-tmp-dir /tmp
+make lock-check
+make format-check
+make lint
+make typecheck
+make compile
+make docs-check
+uv build
 ```
 
-The Makefile variables `HTTP_HOST`, `HTTP_PORT`, `GUNICORN_WORKERS`, `GUNICORN_TIMEOUT`, `GUNICORN_GRACEFUL_TIMEOUT`, `GUNICORN_KEEPALIVE`, and `GUNICORN_FORWARDED_ALLOW_IPS` override these defaults.
-
-## Source and documentation checks
-
-| Target | Direct command |
-| --- | --- |
-| `format` | `uv run --locked ruff check --fix .`, then `uv run --locked ruff format .` |
-| `format-check` | `uv run --locked ruff format --check .` |
-| `lint` | `uv run --locked ruff check .` |
-| `typecheck` | `env PYTHONPATH=app uv run --locked mypy` |
-| `compile` | `uv run --locked python -m compileall -q app alembic/env.py scripts` |
-| `docs-check` | `uv run --locked python scripts/check_documentation.py` |
-| `pre-commit` | `uv run --locked pre-commit run --all-files --show-diff-on-failure` |
-| `check` | `lock-check`, `format-check`, `lint`, `typecheck`, `compile`, and `docs-check` |
-| `check-full` | `check`, then `pre-commit` |
-
-Use `make format` deliberately when source repair is intended. Use `make check` for the regular source-preserving verification set.
-Tests are added or changed only when a task explicitly requests them. The generated foundation has
-no permanent test suite or architecture checker script.
-
-## Database commands
-
-| Target | Direct command |
-| --- | --- |
-| `db-upgrade` | `env PYTHONPATH=app uv run --locked alembic upgrade head` |
-| `db-downgrade` | `env PYTHONPATH=app uv run --locked alembic downgrade -1` |
-| `db-revision` | `env PYTHONPATH=app uv run --locked alembic revision --autogenerate -m "<message>"` |
-
-Pass the revision message through Make:
-
-```bash
-make db-revision message=describe_schema_change
-```
-
-See `docs/development/database-migrations.md` before changing metadata or revisions.
-
-## Container and Helm commands
-
-`make docker-build` wraps the BuildKit inputs required to resolve private `pypokerlost`:
-
-```bash
-docker build \
-  --ssh default \
-  --secret id=github_known_hosts,src="$HOME/.ssh/known_hosts" \
-  -t "pokerlost-authservice:local" \
-  .
-```
-
-The chart wrappers are:
-
-```bash
-helm lint deploy/helm/authservice
-helm template authservice deploy/helm/authservice
-```
-
-See `docs/development/containers-and-kubernetes.md` for SSH, runtime, probe, and Secret requirements.
+`make check` combines the existing non-test checks above except the build. `make check-full` also runs the existing pre-commit hooks. The repository has no subject test suite; an empty pytest collection is not success. Docker, Helm, and PostgreSQL checks are separate and need their actual infrastructure. `make db-upgrade` and `make db-downgrade` are operator actions, never startup steps. `make db-revision message=...` creates only an empty draft.

@@ -9,35 +9,13 @@ http:
   port: 8000
 
 environment:
-  AUTHSERVICE_APPLICATION__ENVIRONMENT: production
-  AUTHSERVICE_APPLICATION__VERSION: "0.1.0"
-  AUTHSERVICE_HTTP__HOST: 0.0.0.0
-  AUTHSERVICE_HTTP__PORT: "8000"
-  AUTHSERVICE_LOGFIRE__ENABLED: "true"
-  AUTHSERVICE_LOGFIRE__SEND_TO_LOGFIRE: "true"
-  AUTHSERVICE_LOGFIRE__CONSOLE: "true"
-  AUTHSERVICE_LOGFIRE__MINIMUM_LEVEL: info
-  AUTHSERVICE_DATABASE__POOL_SIZE: "10"
-  AUTHSERVICE_DATABASE__MAX_OVERFLOW: "10"
-  AUTHSERVICE_DATABASE__POOL_TIMEOUT_SECONDS: "10"
-  AUTHSERVICE_DATABASE__COMMAND_TIMEOUT_SECONDS: "30"
+  AUTHSERVICE_LOGLEVEL: INFO
 
 secretEnvironment:
-  AUTHSERVICE_LOGFIRE__TOKEN:
-    enabled: true
-    name: authservice-logfire
-    key: token
-  AUTHSERVICE_DATABASE__URL:
+  DATABASE_URL:
     enabled: true
     name: authservice-runtime
     key: database-url
-
-gunicorn:
-  workers: 2
-  timeout: 30
-  gracefulTimeout: 30
-  keepalive: 5
-  forwardedAllowIps: "127.0.0.1"
 
 service:
   # Keep this ClusterIP behind mandatory deployment HTTPS/TLS termination.
