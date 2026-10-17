@@ -1,6 +1,6 @@
 # authService
 
-`authService` is a Pokerlost FastAPI foundation installed from `src/authService/`. It retains
+`authService` is a Pokerlost FastAPI foundation installed from `src/authservice/`. It retains
 PostgreSQL wiring and historical revisions, but token and grant operations are planned in
 [SERVICE.md](SERVICE.md) and absent from the current runtime.
 
@@ -45,6 +45,7 @@ Run `make help` for the local tool interface. Regular quality entry points are:
 
 ```bash
 make check
+make test
 make pre-commit
 ```
 
@@ -54,3 +55,5 @@ remain behind trusted TLS termination.
 Historical revisions moved unchanged from `alembic/versions/` to `migrations/versions/`. They can
 still create old authorization tables on a fresh database; this code migration does not remove
 storage or prove a live database upgrade. See [migration guidance](docs/development/database-migrations.md).
+
+The private SDK build runs only through the reviewed-SHA `sdk-build` environment; source checks run on PRs without secrets. The image uses a BuildKit `sdk_token` secret. No release or deployment is triggered by CI.

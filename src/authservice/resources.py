@@ -13,10 +13,10 @@ class ApplicationResources:
     """Resources owned by exactly one ASGI lifespan and worker."""
 
     engine: AsyncEngine
-    sessionFactory: async_sessionmaker[AsyncSession]
+    session_factory: async_sessionmaker[AsyncSession]
 
 
-def getResources(request: Request) -> ApplicationResources:
+async def get_resources(request: Request) -> ApplicationResources:
     """Expose initialized resources through one narrow dependency."""
     resources = getattr(request.app.state, "resources", None)
     if not isinstance(resources, ApplicationResources):

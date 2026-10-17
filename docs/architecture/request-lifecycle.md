@@ -5,7 +5,7 @@ and response handling.
 
 ## Composition
 
-`createApp()` receives or validates settings and constructs FastAPI without opening network
+`create_app()` receives or validates settings and constructs FastAPI without opening network
 connections. Lifespan creates and closes the per-worker database engine and session factory.
 The optional `PokerlostTokenVerifier` is supplied only for an implemented protected route.
 

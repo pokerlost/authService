@@ -2,10 +2,10 @@
 
 The current checkout is a template-derived foundation with only infrastructure routes. Token
 issuance, operator bootstrap, and authorization persistence are planned in `SERVICE.md`, not active
-runtime behavior. The installed package lives under `src/authService/`. Historical Alembic
+runtime behavior. The installed package lives under `src/authservice/`. Historical Alembic
 revisions are retained byte-for-byte under `migrations/versions/` and must not be rewritten.
 `PROJECT.md`, `SERVICE.md`, settings, scopes, service code, and revisions are project-owned.
-This stage adds no product endpoints, fake verifier, new test dependencies, CI, or checker scripts.
+This stage adds no product endpoints or fake verifier. Technical regression tests and CI cover the active foundation.
 
 Before every task:
 
@@ -32,8 +32,8 @@ latest direct user requirement
 - PostgreSQL remains the primary persistence layer.
 - Validate critical settings at startup and fail closed.
 - Do not commit or log secrets.
-- New project-owned private files, variables, and functions use lowerCamelCase; types use PascalCase
-  and constants use UPPER_SNAKE_CASE. Preserve generated paths, framework hooks, published imports,
+- Project-owned Python modules, functions, methods, variables, and fields use snake_case;
+  classes use CapWords and constants use UPPER_SNAKE_CASE. Preserve generated paths, framework hooks, published imports,
   wire/SQL fields, environment names, and override signatures.
 
 ## Pokerlost JSON protocol
@@ -52,7 +52,7 @@ latest direct user requirement
   contain an access token, headers map, method binding, or middleware state.
 - Client credentials belong only in the `getToken` JSON payload. A refresh token belongs only in
   the `refreshToken` JSON payload. Do not prepend a token type string.
-- Every `src/authService/routers/<operation>.py` module owns one module-level
+- Every `src/authservice/routers/<operation>.py` module owns one module-level
   `router = APIRouter(...)`, and its decorated endpoints are module-level functions. Static router
   factories, nested endpoints, one-directory-per-router layouts, route constants used once,
   imperative registration, and post-hoc route mutation are forbidden.
@@ -82,7 +82,7 @@ latest direct user requirement
 - Pokerlost scopes use dot-separated lowerCamelCase segments and match
   `^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)+$`. Wildcards and identity-category bypasses are
   forbidden.
-- Keep exactly one service-owned `Scopes(StrEnum)` catalog in `src/authService/scopes.py`; its
+- Keep exactly one service-owned `Scopes(StrEnum)` catalog in `src/authservice/scopes.py`; its
   focused description mapping is the source for standard OpenAPI OAuth2 metadata.
 - SDK-owned shared wire enums live only in `pypokerlost/enums/`; API adapters map them to local
   domain enums when both representations are required.
@@ -182,7 +182,7 @@ PokerlostRetryMiddleware
   foundation with placeholder command or repository layers.
 - Routes translate API schemas to application values; public models do not double as domain or ORM
   models.
-- Service-owned scopes live in `src/authService/scopes.py`; do not create transport or persistence
+- Service-owned scopes live in `src/authservice/scopes.py`; do not create transport or persistence
   duplicates.
 - A request-owned SQLAlchemy session owns one transaction. Routes, handlers, repositories, and
   query adapters do not commit or roll back directly.
@@ -198,7 +198,6 @@ PokerlostRetryMiddleware
 - Update `docs/api/public-surface.md` for every implemented operation. Wire changes also update the
   response, authorization, operation, and OpenAPI pages.
 - Use the repository `Makefile`, `uv`, Ruff, mypy, Alembic, Docker, and Helm conventions.
-- Do not add tests unless the user explicitly requests them. Do not add rendered-template tests,
-  `scripts/check_*.py`, architecture checker scripts, or hidden equivalents.
-- Before handoff, run the available non-test format, lint, type, documentation, compile, migration,
+- Add focused technical and regression tests for changed behavior. Do not add a new checker framework or unimplemented business tests.
+- Before handoff, run the available format, lint, type, test, documentation, compile, migration,
   and packaging checks individually, and report every unavailable or failed check.

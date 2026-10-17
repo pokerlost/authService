@@ -1,6 +1,6 @@
 # Current status
 
-`authService` is a template-derived infrastructure foundation. The installed package is `src/authService/`; the old flat `app/` runtime was retired after its previous foundation cleanup. `GET /`, `GET /getOpenApi`, `/health/live`, and `/health/ready` are the only registered paths. No token issuance, principal/grant persistence, verifier implementation, business operation, or subject table is active.
+`authService` is a template-derived infrastructure foundation. The installed package is `src/authservice/`; the old flat `app/` runtime was retired after its previous foundation cleanup. `GET /`, `GET /getOpenApi`, `/health/live`, and `/health/ready` are the only registered paths. No token issuance, principal/grant persistence, verifier implementation, business operation, or subject table is active.
 
 The existing SDK contains future-facing client contracts; they do not prove corresponding server routes exist. The empty scope catalog and verifier boundary remain fail-closed. PostgreSQL is configured for this service; readiness returns 503 when its required connection fails.
 

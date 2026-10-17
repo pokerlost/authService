@@ -4,7 +4,7 @@ PostgreSQL is required for this specialized foundation. The application factory 
 
 ## Request boundary
 
-`src/authService/persistence.py` exposes `DatabaseSession` through a function-scoped FastAPI dependency. Its `async_sessionmaker.begin()` commits on success and rolls back on failure before the response is sent. A session belongs to one request task. Future routes, handlers and repositories must not finish this transaction themselves or use lazy ORM loading during response serialization.
+`src/authservice/persistence.py` exposes `DatabaseSession` through a function-scoped FastAPI dependency. Its `async_sessionmaker.begin()` commits on success and rolls back on failure before the response is sent. A session belongs to one request task. Future routes, handlers and repositories must not finish this transaction themselves or use lazy ORM loading during response serialization.
 
 Streaming, WebSocket and background work require separate short operations. Do not share an `AsyncSession` across parallel tasks. End any local transaction before SDK calls, token acquisition or retry backoff; a remote call and local database cannot be one atomic transaction.
 

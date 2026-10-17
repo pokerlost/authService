@@ -1,0 +1,38 @@
+"""Optional async PostgreSQL engine and short HTTP transaction boundary."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from typing import Annotated
+
+from fastapi import Depends, Request
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from authservice.resources import get_resources
+from authservice.settings import ServiceSettings
+
+
+def create_engine(settings: ServiceSettings) -> AsyncEngine:
+    """Create an engine for one process without connecting yet."""
+    return create_async_engine(
+        settings.database_url.get_secret_value(), pool_pre_ping=True
+    )
+
+
+def session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    return async_sessionmaker(engine, expire_on_commit=False)
+
+
+async def open_session(request: Request) -> AsyncIterator[AsyncSession]:
+    """Commit on success and roll back on failure before sending the response."""
+    resources = await get_resources(request)
+    async with resources.session_factory.begin() as session:
+        yield session
+
+
+DatabaseSession = Annotated[AsyncSession, Depends(open_session, scope="function")]

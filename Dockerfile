@@ -1,54 +1,24 @@
-# syntax=docker/dockerfile:1
-
-FROM ghcr.io/astral-sh/uv:0.12.5 AS uv
-
-FROM python:3.14-slim-bookworm AS builder
-
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=0
-
-WORKDIR /service
-
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends git openssh-client \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=uv /uv /uvx /bin/
-RUN install -d -m 0700 /root/.ssh
-
+# syntax=docker/dockerfile:1.7
+FROM python:3.14.7-slim-trixie AS build
+WORKDIR /app
+RUN python -m pip install --no-cache-dir uv==0.12.15
 COPY pyproject.toml uv.lock README.md ./
-RUN --mount=type=ssh,required=true \
-    --mount=type=secret,id=github_known_hosts,target=/root/.ssh/known_hosts,required=true \
-    --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --no-install-project
-
 COPY src ./src
-RUN --mount=type=ssh,required=true \
-    --mount=type=secret,id=github_known_hosts,target=/root/.ssh/known_hosts,required=true \
-    --mount=type=cache,target=/root/.cache/uv \
+COPY --chmod=0755 docker/sdk_askpass.sh /usr/local/bin/sdk_askpass
+COPY alembic.ini ./
+COPY migrations ./migrations
+RUN --mount=type=secret,id=sdk_token,required=true \
+    GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=url.https://github.com/pokerlost/pypokerlost.git.insteadOf \
+    GIT_CONFIG_VALUE_0=ssh://git@github.com/pokerlost/pypokerlost.git \
+    GIT_ASKPASS=/usr/local/bin/sdk_askpass \
+    GIT_TERMINAL_PROMPT=0 \
+    UV_NO_GITHUB_FAST_PATH=1 \
     uv sync --locked --no-dev --no-editable
 
-FROM python:3.14-slim-bookworm AS runtime
-
-LABEL org.opencontainers.image.title="authService" \
-    org.opencontainers.image.version="0.1.0"
-
-ENV PATH=/service/.venv/bin:$PATH \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-WORKDIR /service
-
-RUN groupadd --gid 10001 service \
-    && useradd --uid 10001 --gid service --no-create-home --shell /usr/sbin/nologin service
-
-COPY --from=builder /service/.venv /service/.venv
-COPY migrations ./migrations
-COPY alembic.ini ./
-
-USER 10001:10001
-
-EXPOSE 8000
-
-CMD ["uvicorn", "authService.app:createApp", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+FROM python:3.14.7-slim-trixie
+WORKDIR /app
+COPY --from=build /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+USER 65532:65532
+CMD ["uvicorn", "authservice.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

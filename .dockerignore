@@ -20,6 +20,8 @@
 # Importable application package installed by uv and copied into the runtime image.
 !src/
 !src/**
+!docker/
+!docker/**
 
 
 ### PostgreSQL migrations

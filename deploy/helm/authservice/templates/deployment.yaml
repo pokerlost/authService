@@ -27,7 +27,7 @@ spec:
           command:
             - uvicorn
           args:
-            - authService.app:createApp
+            - authservice.app:create_app
             - --factory
             - --host
             - 0.0.0.0

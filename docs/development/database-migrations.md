@@ -4,7 +4,7 @@ The five historical authService revisions were moved byte-for-byte from `alembic
 
 ## 🧭 Commands and ownership
 
-`alembic.ini` uses `migrations/`; `migrations/env.py` takes its connection from the installed `authService` package and the required `DATABASE_URL`. The empty foundation has no autogenerate metadata. Inspect history without a database:
+`alembic.ini` uses `migrations/`; `migrations/env.py` takes its connection from the installed `authservice` package and the required `DATABASE_URL`. The empty foundation has no autogenerate metadata. Inspect history without a database:
 
 ```bash
 uv run --locked alembic history
