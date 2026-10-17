@@ -18,16 +18,16 @@
 !README.md
 
 # Importable application package installed by uv and copied into the runtime image.
-!app/
-!app/**
+!src/
+!src/**
 
 
 ### PostgreSQL migrations
 
 # Alembic is part of the runtime image, including an initially empty versions directory.
 !alembic.ini
-!alembic/
-!alembic/**
+!migrations/
+!migrations/**
 
 
 ### Generated and local files
