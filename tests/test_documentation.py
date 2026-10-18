@@ -210,10 +210,10 @@ def test_unsupported_missing_and_escaping_targets_fail(
     assert errors
 
 
-def test_local_link_and_symlink_escape_are_resolved(tmp_path: Path) -> None:
+def test_symlink_escape_and_template_suffix_are_resolved(tmp_path: Path) -> None:
     root = tmp_path / "repo"
-    source = document(root, "README.md")
-    document(root, "guide.md", "# Part\n\nOpening.\n")
+    source = document(root, "README.md.jinja")
+    document(root, "guide.md.jinja", "# Part\n\nOpening.\n")
     outside = document(tmp_path, "outside.md")
     (root / "escape.md").symlink_to(outside)
     errors: list[str] = []

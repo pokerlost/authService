@@ -1,7 +1,3 @@
-# Pull request
-
-Describe the actual change and evidence below.
-
 ## Why
 
 State the observed problem or task, with a link when one exists.

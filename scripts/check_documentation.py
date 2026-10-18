@@ -36,8 +36,8 @@ _IGNORED_DIRECTORY_NAMES = frozenset(
     {
         ".agents",
         ".aws",
-        ".serena",
         ".local",
+        ".serena",
         "backups",
         ".pytest_cache",
         ".codex",
@@ -411,7 +411,7 @@ def _heading_anchors(path: Path, cache: dict[Path, set[str]]) -> set[str]:
 
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError, UnicodeError:
+    except (OSError, UnicodeError):
         cache[resolved] = set()
         return cache[resolved]
 
@@ -484,12 +484,14 @@ def _check_links(
                 if parsed.path
                 else source.resolve()
             )
+            if source.suffix == ".jinja" and not target.is_file():
+                target = target.with_name(target.name + ".jinja")
             if not target.is_relative_to(repository_root) or not target.is_file():
                 errors.append(f"{display}: local link target is missing: {destination}")
                 continue
             if parsed.fragment:
                 fragment = unquote(parsed.fragment).casefold()
-                if target.suffix != ".md" or fragment not in {
+                if ".md" not in target.suffixes or fragment not in {
                     anchor.casefold()
                     for anchor in _heading_anchors(target, anchor_cache)
                 }:
