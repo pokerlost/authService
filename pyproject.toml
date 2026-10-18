@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pokerlost-authservice"
-version = "0.1.0"
+version = "0.1.1.dev0"
 description = "Pokerlost authorization service foundation."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -18,11 +18,11 @@ dependencies = [
     "alembic>=1.17,<2",
 ]
 
-[tool.uv.sources]
-pypokerlost = { git = "ssh://git@github.com/pokerlost/pypokerlost.git", rev = "8652cc850ccef8a00538ba6ff0b545ff7f3d38af" }
-
 [dependency-groups]
-dev = ["mypy>=2.3,<2.4", "pre-commit==4.6.2", "ruff==0.16.4", "pytest>=9,<10", "pytest-cov>=7,<8", "httpx>=0.28,<1"]
+dev = ["mypy>=2.3,<2.4", "ruff==0.16.4", "packaging>=25,<27", "hatchling>=1.27,<2", "pytest>=9,<10", "pytest-cov>=7,<8", "httpx>=0.28,<1", "pre-commit==4.6.2"]
+
+[tool.hatch.build]
+exclude = [".aws", ".aws/**", ".agents", ".agents/**", ".codex", ".codex/**", ".serena", ".serena/**", ".local", ".local/**", "backups", "backups/**", ".env", ".env.*", "!.env.example"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/authservice"]
@@ -37,7 +37,7 @@ extend-exclude = ["migrations/versions"]
 select = ["B", "E", "F", "I", "N", "RUF", "UP"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["authservice"]
+known-first-party = ["authservice", "scripts"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -47,5 +47,31 @@ plugins = ["pydantic.mypy"]
 warn_unused_configs = true
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers --strict-config"
+pythonpath = ["."]
+addopts = "--strict-markers --strict-config --import-mode=importlib"
 markers = ["unit: isolated unit tests", "integration: external dependency tests", "contract: public contract tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["authservice", "scripts", "migrations"]
+patch = ["subprocess"]
+
+[tool.coverage.paths]
+source = ["src/authservice", "*/site-packages/authservice"]
+
+[tool.coverage.report]
+fail_under = 100
+precision = 2
+show_missing = true
+skip_covered = false
+include_namespace_packages = true
+
+[tool.coverage.json]
+output = "coverage/coverage.json"
+
+[tool.coverage.xml]
+output = "coverage/coverage.xml"
+
+
+[tool.uv.sources]
+pypokerlost = { git = "ssh://git@github.com/pokerlost/pypokerlost.git", rev = "8652cc850ccef8a00538ba6ff0b545ff7f3d38af" }

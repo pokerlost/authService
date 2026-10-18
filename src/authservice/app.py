@@ -5,11 +5,14 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from contextlib import (
+    AbstractAsyncContextManager,
+    AsyncExitStack,
+    asynccontextmanager,
+)
 from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
-from sqlalchemy.ext.asyncio import AsyncEngine
 
 from authservice.api.health import router as health_router
 from authservice.authorization import configure_authorization_errors
@@ -30,18 +33,17 @@ def create_lifespan(
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        engine: AsyncEngine | None = None
-        try:
+        async with AsyncExitStack() as stack:
             engine = create_engine(settings)
+            stack.push_async_callback(engine.dispose)
             application.state.resources = ApplicationResources(
                 engine=engine, session_factory=session_factory(engine)
             )
-            yield
-        finally:
-            if hasattr(application.state, "resources"):
-                del application.state.resources
-            if engine is not None:
-                await engine.dispose()
+            try:
+                yield
+            finally:
+                if hasattr(application.state, "resources"):
+                    del application.state.resources
 
     return lifespan
 
