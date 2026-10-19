@@ -46,6 +46,7 @@ _IGNORED_DIRECTORY_NAMES = frozenset(
         ".ruff_cache",
         ".venv",
         "build",
+        "coverage",
         "dist",
         "site",
     }
@@ -522,7 +523,10 @@ def _check_index_inventory(
 
 def _is_ignored_document(path: Path, repository_root: Path) -> bool:
     relative_parts = path.relative_to(repository_root).parts
-    return any(part in _IGNORED_DIRECTORY_NAMES for part in relative_parts)
+    # GitHub forms are not published documentation pages.
+    return relative_parts == (".github", "PULL_REQUEST_TEMPLATE.md") or any(
+        part in _IGNORED_DIRECTORY_NAMES for part in relative_parts
+    )
 
 
 def _parse_arguments() -> argparse.Namespace:
