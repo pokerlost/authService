@@ -77,7 +77,7 @@ a full reviewed SHA and the SDK-only App approval gate; skipped runtime checks d
 public Docker tools without installing the SDK. It does not verify runtime types or tests.
 After approved SDK access, `make check build verify image` uses the canonical Docker graph;
 provide the short-lived token only with `DOCKER_BUILD_ARGS='--secret id=sdk_token,env=SDK_APP_TOKEN'`.
-`check` runs strict static/unit checks once; `verify` freshly tests the installed wheel and any
+`check` runs strict static checks and the enabled source suite once; a persistence source run requires an explicitly disposable `TEST_DATABASE_URL` and `QUALITY_NETWORK=host`; `verify` freshly tests the installed wheel and any
 enabled disposable PostgreSQL profile, with separate `coverage/installed/` reports. `make coverage`
 reads current source reports without rerunning tests. Below 100% warns; assertions, types,
 build/configuration/access and invalid/stale report errors fail.
