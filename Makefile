@@ -1,3 +1,19 @@
+ifneq ($(CONTAINERIZED),1)
+QUALITY_DOCKERFILE := Dockerfile
+QUALITY_IMAGE := authservice:quality
+RUNTIME_IMAGE := authservice:candidate
+QUALITY_TEST := test-unit
+QUALITY_EXTRA_TARGETS :=
+
+VERIFY_COMMAND = $(MAKE) CONTAINERIZED=1 test-image && $(QUALITY_RUN) python docker/coverage_report.py coverage/installed/coverage.json --after coverage/installed/.started --output coverage/installed/summary.md
+verify: quality-image
+include docker/quality-python.mk
+SOURCE_REQUIRE_LOCK ?= true
+.PHONY: source
+source:
+	$(DOCKER) buildx build --file Dockerfile.source --build-arg REQUIRE_LOCK=$(SOURCE_REQUIRE_LOCK) --target source --load --tag authservice:source $(QUALITY_BUILD_ARGS) .
+	$(DOCKER) run --init --rm --read-only --network none --tmpfs /tmp:rw,mode=1777 --user "$$(id -u):$$(id -g)" authservice:source
+else
 .DEFAULT_GOAL := help
 UV ?= uv
 
@@ -28,7 +44,7 @@ test: ## Measure integration and isolated tests together without stale coverage.
 	$(UV) run --locked pytest --cov --cov-append --cov-report=term-missing --cov-report=json --cov-report=xml
 
 
-check: lint typecheck test ## Run the mandatory non-mutating checks.
+check: lint typecheck test-unit ## Run the mandatory non-mutating checks.
 	$(UV) lock --check
 
 build: ## Export the wheel and sdist from the canonical container build.
@@ -54,9 +70,10 @@ test-integration: ## Verify real PostgreSQL; TEST_DATABASE_URL must point to a d
 
 .PHONY: test-image
 test-image: ## Run installed-wheel tests in a disposable container and, when enabled, PostgreSQL.
-	@mkdir -p coverage
+	@mkdir -p coverage/installed
 	docker buildx build $(DOCKER_BUILD_ARGS) --target test --load --tag authservice:test .
-	@set -eu; project="authservicetest$$(python3 -c 'import uuid; print(uuid.uuid4().hex[:12])')"; \
+	@touch coverage/installed/.started
+	@set -eu; project="authservicetest$$(date +%s)$$$$"; \
 	trap 'docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" down --volumes --remove-orphans' EXIT HUP INT TERM; \
 	TEST_UID="$$(id -u)" TEST_GID="$$(id -g)" docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" up --abort-on-container-exit --exit-code-from tests tests
 
@@ -92,3 +109,5 @@ undeploy-local: ## Delete only this application's disposable Kind cluster.
 
 # Project-owned commands survive Copier updates without copying shared recipes.
 -include Makefile.local
+
+endif
