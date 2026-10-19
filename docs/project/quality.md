@@ -21,12 +21,12 @@ Their exact composition is documented in `docs/development/commands.md`.
 
 ## Persistence and packaging checks
 
-- `alembic check` compares registered SQLAlchemy metadata with the migration state when database models or revisions change.
+- `alembic history` checks the five historical revision IDs and parent links without a database; real upgrade requires disposable PostgreSQL.
 - Docker build and an explicit runtime `GET /` smoke check packaging and process startup when that environment-dependent workflow is run.
 - `helm lint` and `helm template` check chart structure and rendered Kubernetes resources.
 - The authoritative OpenAPI generator and installed-SDK end-to-end probe check `pypokerlost` compatibility when an API wire contract changes.
-- Tests are added, changed, or run only when the user explicitly requests them. They are not a
-  default generated-service artifact or an implicit part of the regular checks.
+- The technical HTTP suite checks the active infrastructure contract. Positive PostgreSQL
+  readiness is a separate integration check against disposable storage.
 
 Docker, Helm, PostgreSQL, and SDK/OpenAPI workflows remain explicit because they can require local
 daemons, credentials, network access, or external checkouts. See
@@ -37,6 +37,6 @@ daemons, credentials, network access, or external checkouts. See
 
 These checks detect specific formatting, typing, syntax, documentation, metadata, packaging, rendering, and compatibility failures. They are not proof of business correctness, production readiness, or security.
 
-This repository does not claim unit or integration coverage, a security audit, performance
-measurements, or CI/CD. Do not add or publish such claims unless the corresponding maintained
-workflow exists and its current result was actually verified.
+This repository does not claim a security audit, performance measurements, or production
+readiness. The private SDK build requires the reviewed-SHA environment and repository-scoped
+secrets; a workflow definition alone is not a passed hosted run.

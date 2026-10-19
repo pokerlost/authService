@@ -5,7 +5,7 @@ This page summarizes the executable Python quality contract for the generated se
 ## Executable source of truth
 
 The project requires Python 3.14 or newer. `pyproject.toml` is authoritative
-for the Python requirement, Ruff target, 100-character line length, lint selection, strict mypy
+for the Python requirement, Ruff target, 88-character line length, lint selection, strict mypy
 configuration, source roots, and declared development dependencies. `uv.lock` records their
 resolved versions.
 
@@ -27,10 +27,9 @@ Do not add broad `# noqa` or `# type: ignore` suppressions. A narrow suppression
 
 ## Artifact names
 
-Concrete artifact names include their category in both the class suffix and the matching
-module suffix. New private identifiers use lowerCamelCase where no existing import, generator,
-framework, or wire contract fixes the spelling. Request, response, persistence model, and service-owned projection
-details remain in the generated rulebook rather than being repeated here.
+Project-owned modules, functions, methods, variables, and fields use `snake_case`; classes use
+`CapWords`, and constants use `UPPER_SNAKE_CASE`. External operation IDs, scope strings, HTTP
+fields, repository names, and framework hooks keep their published spelling.
 
 The generated `AGENTS.md` owns project-specific naming exceptions, layer rules,
 operation-package naming, and public API conventions. Keep this page as a tooling summary rather

@@ -1,7 +1,7 @@
 # authService documentation
 
-This documentation describes the current authService scope-only Pokerlost surface, service-client
-foundation, architecture, and development workflows.
+This documentation describes the generated Pokerlost FastAPI service foundation and its verified
+development workflows.
 
 ## Getting started
 
@@ -14,18 +14,19 @@ foundation, architecture, and development workflows.
 - `docs/api/overview.md` — API overview.
 - `docs/api/operation-contract.md` — operation contract.
 - `docs/api/pokerlost-response.md` — canonical response envelope.
-- `docs/api/header-authorization.md` — bearer-header authentication and exact scopes.
+- `docs/api/header-authorization.md` — bearer authentication and exact scopes.
 - `docs/api/errors.md` — errors.
 - `docs/api/openapi-and-sdk.md` — OpenAPI and SDK.
 - `docs/api/public-surface.md` — public surface.
 
 ## Architecture
 
+- `docs/architecture.md` — current composed foundation and package lifecycle.
 - `docs/architecture/overview.md` — architecture overview.
 - `docs/architecture/request-lifecycle.md` — request lifecycle.
 - `docs/architecture/persistence-and-transactions.md` — persistence and transactions.
-- `docs/architecture/service-client-credentials.md` — service client credentials.
 - `docs/architecture/inter-service-clients.md` — outbound client, token ownership, and retry.
+- `docs/architecture/service-client-credentials.md` — deferred authService credential behavior.
 
 ## Development
 

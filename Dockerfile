@@ -1,57 +1,76 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.27.1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
+ARG PYTHON_IMAGE=python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56
 
-FROM ghcr.io/astral-sh/uv:0.12.5 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.15@sha256:62f8c047d0a0e9ece6b53fc63df902585a67a47a7f318ddec4a37db586edc8e3 AS uv
 
-FROM python:3.14-slim-bookworm AS builder
+FROM ${PYTHON_IMAGE} AS base
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+WORKDIR /app
 
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=0
-
-WORKDIR /service
-
+FROM base AS dependencies
+COPY --from=uv /uv /usr/local/bin/uv
+ENV UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never
+COPY pyproject.toml uv.lock README.md .gitignore ./
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends git openssh-client \
+    && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
-COPY --from=uv /uv /uvx /bin/
-RUN install -d -m 0700 /root/.ssh
-
-COPY pyproject.toml uv.lock README.md ./
-RUN --mount=type=ssh,required=true \
-    --mount=type=secret,id=github_known_hosts,target=/root/.ssh/known_hosts,required=true \
-    --mount=type=cache,target=/root/.cache/uv \
+COPY --chmod=0755 docker/sdk_askpass.sh /usr/local/bin/sdk_askpass
+RUN --mount=type=cache,id=authservice-runtime-python314-linux-amd64,target=/root/.cache/uv,sharing=locked \
+    --mount=type=secret,id=sdk_token,required=true \
+    GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=url.https://github.com/pokerlost/pypokerlost.git.insteadOf \
+    GIT_CONFIG_VALUE_0=ssh://git@github.com/pokerlost/pypokerlost.git \
+    GIT_ASKPASS=/usr/local/bin/sdk_askpass GIT_TERMINAL_PROMPT=0 \
+    UV_NO_GITHUB_FAST_PATH=1 \
     uv sync --locked --no-dev --no-install-project
 
-COPY app ./app
-RUN --mount=type=ssh,required=true \
-    --mount=type=secret,id=github_known_hosts,target=/root/.ssh/known_hosts,required=true \
-    --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --no-editable
+FROM dependencies AS wheel-builder
+RUN --mount=type=cache,id=authservice-development-python314-linux-amd64,target=/root/.cache/uv,sharing=locked \
+    --mount=type=secret,id=sdk_token,required=true \
+    GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=url.https://github.com/pokerlost/pypokerlost.git.insteadOf \
+    GIT_CONFIG_VALUE_0=ssh://git@github.com/pokerlost/pypokerlost.git \
+    GIT_ASKPASS=/usr/local/bin/sdk_askpass GIT_TERMINAL_PROMPT=0 \
+    UV_NO_GITHUB_FAST_PATH=1 \
+    uv sync --locked --all-groups --no-install-project
+COPY src ./src
+RUN --mount=type=cache,id=uv-build,target=/root/.cache/uv,sharing=locked \
+    uv build --no-build-isolation --wheel --sdist --out-dir /dist
 
-FROM python:3.14-slim-bookworm AS runtime
+FROM wheel-builder AS quality
+RUN apt-get update && apt-get install -y --no-install-recommends make git curl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN curl --fail --silent --show-error --location https://get.helm.sh/helm-v4.3.1-linux-amd64.tar.gz --output /tmp/helm.tar.gz \
+    && echo '0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b  /tmp/helm.tar.gz' | sha256sum --check --status \
+    && tar -xzf /tmp/helm.tar.gz -C /tmp linux-amd64/helm && mv /tmp/linux-amd64/helm /usr/local/bin/helm && rm -rf /tmp/helm.tar.gz /tmp/linux-amd64
+RUN uv pip install --python /app/.venv/bin/python --no-deps /dist/*.whl
+COPY --chmod=u=rwX,go=rX . ./
+ENV CONTAINERIZED=1 UV_NO_SYNC=1
+CMD ["make", "check"]
 
-LABEL org.opencontainers.image.title="authService" \
-    org.opencontainers.image.version="0.1.0"
+FROM scratch AS artifacts
+COPY --from=wheel-builder /dist/ /
 
-ENV PATH=/service/.venv/bin:$PATH \
-    PYTHONPATH=/service/app \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    GUNICORN_CMD_ARGS="--bind=0.0.0.0:8000 --workers=2 --timeout=30 --graceful-timeout=30 --keep-alive=5 --forwarded-allow-ips=127.0.0.1 --access-logfile=- --error-logfile=- --capture-output --worker-tmp-dir=/tmp"
+FROM dependencies AS installed
+COPY --from=wheel-builder /dist/*.whl /wheels/
+RUN uv pip install --python /app/.venv/bin/python --no-deps /wheels/*.whl
 
-WORKDIR /service
+FROM wheel-builder AS test
+RUN uv pip install --python /app/.venv/bin/python --no-deps /dist/*.whl
+WORKDIR /checks
+COPY --exclude=src --exclude=src/** --chmod=u=rwX,go=rX . ./
+ENV COVERAGE_FILE=/checks/coverage/.coverage TEST_INSTALLED_WHEEL=1
+USER 65532:65532
+CMD ["python", "-m", "pytest", "--cov", "--cov-report=term-missing", "--cov-report=json", "--cov-report=xml", "-p", "no:cacheprovider"]
 
-RUN groupadd --gid 10001 service \
-    && useradd --uid 10001 --gid service --no-create-home --shell /usr/sbin/nologin service
-
-COPY --from=builder /service/.venv /service/.venv
-COPY app ./app
-COPY alembic ./alembic
-COPY alembic.ini ./
-
-USER 10001:10001
-
+FROM base AS runtime
+COPY --from=installed /app/.venv /app/.venv
+COPY --chmod=u=rwX,go=rX migrations ./migrations
+COPY --chmod=u=rwX,go=rX alembic.ini ./
+USER 65532:65532
 EXPOSE 8000
-
-CMD ["gunicorn", "api.application:create_app()", "--worker-class", "uvicorn_worker.UvicornWorker"]
+STOPSIGNAL SIGTERM
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["python", "-c", "import urllib.request; urllib.request.build_opener(urllib.request.ProxyHandler({})).open('http://127.0.0.1:8000/health/live', timeout=2).close()"]
+CMD ["python", "-m", "uvicorn", "authservice.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--no-server-header", "--timeout-graceful-shutdown", "10"]

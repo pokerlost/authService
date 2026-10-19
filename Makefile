@@ -1,104 +1,122 @@
+ifneq ($(CONTAINERIZED),1)
+QUALITY_IMAGE := authservice:quality
+BUILD_DOCKERFILE := Dockerfile.quality
+QUALITY_RUN_ARGS += --env TEST_DATABASE_URL --env DATABASE_URL
+QUALITY_EXTRA_TARGETS := docs-check format-check chart-check
+
+QUALITY_DOCKERFILE := Dockerfile
+RUNTIME_IMAGE := authservice:candidate
+BUILD_DOCKERFILE := Dockerfile
+VERIFY_COMMAND = $(MAKE) CONTAINERIZED=1 test-image && $(QUALITY_RUN) python docker/coverage_report.py coverage/installed/coverage.json --after coverage/installed/.started --output coverage/installed/summary.md
+verify: quality-image
+.PHONY: chart deploy-local undeploy-local
+chart deploy-local undeploy-local:
+	$(MAKE) CONTAINERIZED=1 $@
+
+
+SOURCE_REQUIRE_LOCK ?= true
+.PHONY: source
+source:
+	$(DOCKER) buildx build --file Dockerfile.source --build-arg REQUIRE_LOCK=$(SOURCE_REQUIRE_LOCK) --target source --load --tag authservice:source $(QUALITY_BUILD_ARGS) .
+	$(DOCKER) run --init --rm --read-only --network none --tmpfs /tmp:rw,mode=1777 --user "$$(id -u):$$(id -g)" authservice:source
+
+include docker/quality-python.mk
+else
 .DEFAULT_GOAL := help
-
 UV ?= uv
-PYTHONPATH := app
-HTTP_HOST ?= 0.0.0.0
-HTTP_PORT ?= 8000
-GUNICORN_WORKERS ?= 2
-GUNICORN_TIMEOUT ?= 30
-GUNICORN_GRACEFUL_TIMEOUT ?= 30
-GUNICORN_KEEPALIVE ?= 5
-GUNICORN_FORWARDED_ALLOW_IPS ?= 127.0.0.1
-HELM_CHART := deploy/helm/authservice
 
-define require_tool
-	@command -v "$(1)" >/dev/null 2>&1 || { echo "Required tool not found: $(1)" >&2; exit 127; }
-endef
+.PHONY: help install format lint typecheck test test-unit check build
 
-.PHONY: help install lock lock-check run serve format format-check lint typecheck compile docs-check pre-commit check check-full db-upgrade db-downgrade db-revision docker-build helm-lint helm-template
-
-help: ## Show this help message
-	$(call require_tool,awk)
+help: ## Show the supported development commands.
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-install: ## Install dependencies from uv.lock
-	$(call require_tool,$(UV))
+install: ## Install the locked development environment.
 	$(UV) sync --locked
 
-lock: ## Resolve dependencies and write uv.lock
-	$(call require_tool,$(UV))
-	$(UV) lock
-
-lock-check: ## Verify that uv.lock matches pyproject.toml
-	$(call require_tool,$(UV))
-	$(UV) lock --check
-
-run: ## Run the local Uvicorn development server
-	$(call require_tool,$(UV))
-	env PYTHONPATH=$(PYTHONPATH) $(UV) run --locked authservice run
-
-serve: ## Run the production Gunicorn server
-	$(call require_tool,$(UV))
-	env PYTHONPATH=$(PYTHONPATH) $(UV) run --locked gunicorn "api.application:create_app()" --worker-class uvicorn_worker.UvicornWorker --bind "$(HTTP_HOST):$(HTTP_PORT)" --workers "$(GUNICORN_WORKERS)" --timeout "$(GUNICORN_TIMEOUT)" --graceful-timeout "$(GUNICORN_GRACEFUL_TIMEOUT)" --keep-alive "$(GUNICORN_KEEPALIVE)" --forwarded-allow-ips "$(GUNICORN_FORWARDED_ALLOW_IPS)" --access-logfile - --error-logfile - --capture-output --worker-tmp-dir /tmp
-
-format: ## Apply Ruff lint fixes and formatting
-	$(call require_tool,$(UV))
+format: ## Format owned Python sources.
 	$(UV) run --locked ruff check --fix .
 	$(UV) run --locked ruff format .
 
-format-check: ## Check Ruff formatting without changing files
-	$(call require_tool,$(UV))
+lint: ## Check formatting and lint without modifying files.
+	$(UV) run --locked ruff check .
 	$(UV) run --locked ruff format --check .
 
-lint: ## Run Ruff lint without changing files
-	$(call require_tool,$(UV))
-	$(UV) run --locked ruff check .
+typecheck: ## Check strict Python types.
+	$(UV) run --locked mypy
 
-typecheck: ## Run strict mypy
-	$(call require_tool,$(UV))
-	env PYTHONPATH=$(PYTHONPATH) $(UV) run --locked mypy
+test-unit: ## Run isolated tests and complete Python coverage.
+	$(UV) run --locked pytest --cov --cov-report=term-missing --cov-report=json --cov-report=xml
 
-compile: ## Compile Python sources, Alembic entry, and scripts
-	$(call require_tool,$(UV))
-	$(UV) run --locked python -m compileall -q app alembic/env.py scripts
+test: ## Measure integration and isolated tests together without stale coverage.
+	$(UV) run --locked python -m coverage run -m pytest tests/foundation/database_integration.py $(wildcard tests/*_integration.py) $(INTEGRATION_TEST_PATHS)
+	$(UV) run --locked pytest --cov --cov-append --cov-report=term-missing --cov-report=json --cov-report=xml
 
-docs-check: ## Validate the documentation contract
-	$(call require_tool,$(UV))
-	$(UV) run --locked python scripts/check_documentation.py
 
-pre-commit: ## Run every pre-commit hook against all files
-	$(call require_tool,$(UV))
-	$(UV) run --locked pre-commit run --all-files --show-diff-on-failure
+check: lint typecheck test ## Run the mandatory non-mutating checks.
+	$(UV) lock --check
 
-check: lock-check format-check lint typecheck compile docs-check ## Run regular non-mutating local checks
+build: ## Export the wheel and sdist from the canonical container build.
+	$(UV) build --no-build-isolation --wheel --sdist
 
-check-full: check pre-commit ## Run regular checks and all pre-commit hooks
+.PHONY: image
+image: ## Build and load the immutable runtime candidate locally.
+	@mkdir -p dist
+	docker buildx build $(DOCKER_BUILD_ARGS) --target runtime --load --tag authservice:candidate --metadata-file dist/image-build.json .
 
-db-upgrade: ## Upgrade PostgreSQL to the Alembic head
-	$(call require_tool,$(UV))
-	env PYTHONPATH=$(PYTHONPATH) $(UV) run --locked alembic upgrade head
+.PHONY: run
 
-db-downgrade: ## Downgrade PostgreSQL by one Alembic revision
-	$(call require_tool,$(UV))
-	env PYTHONPATH=$(PYTHONPATH) $(UV) run --locked alembic downgrade -1
+HTTP_HOST ?= 127.0.0.1
+HTTP_PORT ?= 8000
+UVICORN_FLAGS ?=
 
-db-revision: ## Create an autogenerated revision with message=<text>
-	$(call require_tool,$(UV))
-	@test -n "$(message)" || (echo "message is required" >&2; exit 2)
-	env PYTHONPATH=$(PYTHONPATH) $(UV) run --locked alembic revision --autogenerate -m "$(message)"
+run: ## Run the application on loopback without rebuilding.
+	$(UV) run --locked uvicorn authservice.app:create_app --factory --host "$(HTTP_HOST)" --port "$(HTTP_PORT)" $(UVICORN_FLAGS)
 
-docker-build: ## Build the local image with forwarded GitHub SSH access
-	$(call require_tool,docker)
-	docker build \
-		--ssh default \
-		--secret id=github_known_hosts,src="$$HOME/.ssh/known_hosts" \
-		-t "pokerlost-authservice:local" \
-		.
+.PHONY: test-integration
+test-integration: ## Verify real PostgreSQL; TEST_DATABASE_URL must point to a disposable DB.
+	$(UV) run --locked pytest tests/foundation/database_integration.py $(wildcard tests/*_integration.py) $(INTEGRATION_TEST_PATHS)
 
-helm-lint: ## Lint the Helm chart
-	$(call require_tool,helm)
-	helm lint "$(HELM_CHART)"
+.PHONY: test-image
+test-image: ## Run installed-wheel tests in a disposable container and, when enabled, PostgreSQL.
+	@mkdir -p coverage/installed
+	docker buildx build $(DOCKER_BUILD_ARGS) --target test --load --tag authservice:test .
+	@touch coverage/installed/.started
+	@set -eu; project="authservicetest$$(date +%s)$$$$"; \
+	trap 'docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" down --volumes --remove-orphans' EXIT HUP INT TERM; \
+	TEST_UID="$$(id -u)" TEST_GID="$$(id -g)" docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" up --abort-on-container-exit --exit-code-from tests tests
 
-helm-template: ## Render the Helm chart locally
-	$(call require_tool,helm)
-	helm template "authservice" "$(HELM_CHART)"
+HELM ?= helm
+KIND ?= kind
+KUBECTL ?= kubectl
+KUBECONFIG_LOCAL ?= $(CURDIR)/.local/kubeconfig
+KIND_IMAGE := kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+
+.PHONY: chart chart-check
+check: chart-check
+chart: ## Package the managed shared chart as a deployable artifact.
+	$(HELM) package deploy/chart --destination dist
+
+chart-check: ## Check chart templates and schema with explicit validation-only values.
+	$(HELM) lint deploy/chart --strict --set image.repository=validation.invalid/application --set image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+.PHONY: deploy-local undeploy-local
+deploy-local: image ## Create a disposable Kind contour; no external kubeconfig is used.
+	@mkdir -p .local
+	$(KIND) create cluster --name authservice-local --image $(KIND_IMAGE) --kubeconfig $(KUBECONFIG_LOCAL) --wait 180s
+	$(KIND) load docker-image authservice:candidate --name authservice-local
+	$(KUBECTL) --kubeconfig $(KUBECONFIG_LOCAL) --context kind-authservice-local create namespace foundation
+	docker pull postgres:17.11-trixie@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+	docker tag postgres:17.11-trixie@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3 foundation-postgres:local-2d2b8998d310
+	$(KIND) load docker-image foundation-postgres:local-2d2b8998d310 --name authservice-local
+	$(KUBECTL) --kubeconfig $(KUBECONFIG_LOCAL) --context kind-authservice-local -n foundation apply -f deploy/local/postgres.yaml
+	$(KUBECTL) --kubeconfig $(KUBECONFIG_LOCAL) --context kind-authservice-local -n foundation rollout status deployment/foundation-database --timeout=120s
+	$(HELM) upgrade --install authservice deploy/chart --kubeconfig $(KUBECONFIG_LOCAL) --kube-context kind-authservice-local --namespace foundation --wait --timeout 120s --rollback-on-failure --values deploy/values.yaml --set image.repository=authservice --set image.tag=candidate --set localDevelopment=true --set database.secretName=foundation-database --set migration.enabled=true
+
+undeploy-local: ## Delete only this application's disposable Kind cluster.
+	$(KIND) delete cluster --name authservice-local
+
+
+# Project-owned commands survive Copier updates without copying shared recipes.
+-include Makefile.local
+
+endif

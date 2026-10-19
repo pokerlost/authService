@@ -1,0 +1,35 @@
+# Service-owned commands; common recipes remain in the template Makefile.
+UVICORN_FLAGS = --reload
+
+.PHONY: lock lock-check serve format-check compile docs-check pre-commit check-full db-upgrade db-downgrade db-revision docker-build helm-lint helm-template
+lock: ## Resolve dependencies only when intentionally updating the lock.
+	$(UV) lock
+lock-check: ## Verify committed dependency metadata.
+	$(UV) lock --check
+serve: ## Run without development reload.
+	$(UV) run --locked uvicorn authservice.app:create_app --factory --host "$(HTTP_HOST)" --port "$(HTTP_PORT)"
+format-check: ## Preserve the published formatting-only command.
+	$(UV) run --locked ruff format --check .
+compile: ## Compile application, migration wiring and documentation tool.
+	$(UV) run --locked python -m compileall -q src/authservice migrations/env.py scripts
+docs-check: ## Validate project documentation.
+	$(UV) run --locked python scripts/check_documentation.py
+pre-commit: ## Run existing hooks with the locked environment.
+	$(UV) run --locked pre-commit run --all-files --show-diff-on-failure
+ifeq ($(CONTAINERIZED),1)
+check: compile docs-check
+endif
+check-full: check pre-commit ## Run mandatory checks and hooks.
+db-upgrade: ## Apply reviewed migrations only to an explicitly configured database.
+	$(UV) run --locked alembic upgrade head
+db-downgrade: ## Downgrade one revision only on a disposable database.
+	$(UV) run --locked alembic downgrade -1
+db-revision: ## Create an empty, separately reviewed schema revision.
+	@test -n "$(message)" || (echo "message is required" >&2; exit 2)
+	$(UV) run --locked alembic revision -m "$(message)"
+docker-build: ## Preserve the published image command through the canonical graph.
+	$(MAKE) image DOCKER_BUILD_ARGS="$(DOCKER_BUILD_ARGS) --secret id=sdk_token,env=SDK_APP_TOKEN"
+	docker tag authservice:candidate pokerlost-authservice:local
+helm-lint: chart-check ## Validate the inherited chart.
+helm-template: ## Render validation-only manifests; this is not a deployment.
+	$(HELM) template authservice deploy/chart --values deploy/values.yaml --set image.repository=validation.invalid/application --set image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --set database.secretName=validation-only

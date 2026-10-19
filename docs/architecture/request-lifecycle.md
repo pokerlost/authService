@@ -5,50 +5,46 @@ and response handling.
 
 ## Composition
 
-`create_app()` resolves settings, configures observability, constructs FastAPI, and registers
-request middleware, exception handlers, flat routers, and instrumentation. Lifespan creates the
-database engine/session factory and one process-owned RS256 signer, then stores them with the
-optional `PokerlostTokenVerifier` in `ApplicationResources`.
+`create_app()` receives or validates settings and constructs FastAPI without opening network
+connections. Lifespan creates and closes the per-worker database engine and session factory.
+The optional `PokerlostTokenVerifier` is supplied only for an implemented protected route.
 
-authService currently supplies no verifier because it has no protected route. A real local
-verifier is passed only when an implemented route requires protection; missing protected
-composition fails closed.
+The pristine service supplies no verifier. A concrete service passes a real local verifier only
+when it implements a protected route. Missing protected composition fails closed.
 
 ## Inbound flow
 
 ```text
 FastAPI
-→ server-generated request ID
+→ validated request ID
 → dependencies
 → flat route
 → application handler
 → persistence adapter
 → plain success mapping
 → FastAPI response_model
-→ PokerlostResponse JSON
 ```
 
-The request ID is generated server-side and exists only in request state and telemetry. No caller
-correlation value is accepted or returned as a transport contract.
+The bounded request ID is generated when absent and returned in the response header. Invalid
+caller values are replaced. Bodies, tokens and DSNs are never logged.
 
-Every route receives `PokerlostRequest[Payload]`. A protected route also declares exact scopes
-through `Security`. The dependency parses one bearer header, invokes the local verifier for the
-exact service-name audience, and checks every scope before the route executes.
+Every business route receives the pure JSON `PokerlostRequest[Payload]`. A protected route also
+declares a non-empty exact scope set through `Security`. The standard OAuth2 dependency parses the
+bearer header, invokes the local verifier for the exact service audience, and checks every scope
+before the route executes.
 
-Pydantic request models parse and validate wire values before routes translate payloads into
-application commands or queries. Routes translate application results into plain mappings;
-FastAPI validates and serializes them through the declared `response_model`. Central handlers
-normalize validation, application, database, authentication, authorization, and unexpected
-failures without exposing submitted input.
+Future routes must translate validated payloads into actual application scenarios and return
+SDK-compatible responses. Current routes are infrastructure only. Central handlers normalize
+validation, database, authorization and unexpected failures without exposing submitted input.
 
-`POST /getToken` opens a request-owned database transaction, invokes the client-credentials
-handler, and returns plain token data for response-model serialization. Root and OpenAPI routes
-open no database transaction.
+An expired token is rejected before entering the endpoint handler or beginning business effects.
+That ordering is the safety invariant for the SDK's one permitted reactive refresh and replay.
 
 ## Transactions and outbound calls
 
-A route that declares `DatabaseSession` owns one async transaction. It must end before token
+A route that declares `DatabaseSession` uses a function-scoped dependency that commits on success
+and rolls back on failure before response send. It must end before token
 acquisition, outbound SDK calls, retry sleep, or subsequent attempts. Outbound clients use retry
-then authentication middleware as documented in `docs/architecture/inter-service-clients.md`.
+then authorization middleware as documented in `docs/architecture/inter-service-clients.md`.
 
-The root and OpenAPI routes stop at the route layer and open no database transaction.
+The root, OpenAPI and liveness routes open no request database transaction.
