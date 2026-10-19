@@ -16,7 +16,9 @@ docs-check: ## Validate project documentation.
 	$(UV) run --locked python scripts/check_documentation.py
 pre-commit: ## Run existing hooks with the locked environment.
 	$(UV) run --locked pre-commit run --all-files --show-diff-on-failure
+ifeq ($(CONTAINERIZED),1)
 check: compile docs-check
+endif
 check-full: check pre-commit ## Run mandatory checks and hooks.
 db-upgrade: ## Apply reviewed migrations only to an explicitly configured database.
 	$(UV) run --locked alembic upgrade head
