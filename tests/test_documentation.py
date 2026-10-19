@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
 
 from scripts import check_documentation as checker
 
@@ -298,24 +299,28 @@ def test_actual_cli_uses_explicit_documents_from_another_directory(
     assert "1 page(s)" in result.stdout
 
 
-def test_default_inventory_distinguishes_forms_and_reports_from_guidance(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+def test_default_inventory_separates_reports_forms_and_guidance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Machine reports are not guides; GitHub guidance must still be checked."""
     document(tmp_path, "docs/index.md")
     form = document(
-        tmp_path,
-        ".github/PULL_REQUEST_TEMPLATE.md",
-        "## Summary\n\nFill in the form.\n",
+        tmp_path, ".github/PULL_REQUEST_TEMPLATE.md", "## Summary\n\nForm.\n"
     )
-    document(tmp_path, "coverage/summary.md", "| Metric | Coverage |\n")
+    report = document(tmp_path, "coverage/summary.md", "| Metric | Coverage |\n")
+    document(tmp_path, ".vscode/cache.md", "Editor cache without a heading.\n")
     guidance = document(tmp_path, ".github/docs/sdk-admission.md")
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(sys, "argv", ["check_documentation"])
-    assert checker.main() == 0
-    capsys.readouterr()
-    guidance.write_text("## Broken guidance\n")
-    assert checker.main() == 1
-    assert ".github/docs/sdk-admission.md" in capsys.readouterr().err
-    monkeypatch.setattr(sys, "argv", ["check_documentation", "--documents", str(form)])
-    assert checker.main() == 1
-    assert "expected exactly one H1" in capsys.readouterr().err
+    runner = CliRunner()
+    result = runner.invoke(checker.app, [])
+    assert result.exit_code == 0, result.stderr
+    assert "2 page(s)" in result.stdout
+    guidance.write_text("Guidance requires its own heading.\n")
+    result = runner.invoke(checker.app, [])
+    assert result.exit_code == 1
+    assert ".github/docs/sdk-admission.md" in result.stderr
+    assert "coverage/summary.md" not in result.stderr
+    for explicit_document in (report, form):
+        result = runner.invoke(checker.app, ["--documents", str(explicit_document)])
+        assert result.exit_code == 1
+        assert "expected exactly one H1" in result.stderr
