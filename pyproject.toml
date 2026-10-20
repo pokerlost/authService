@@ -8,6 +8,8 @@ version = "0.1.1.dev0"
 description = "Pokerlost authorization service foundation."
 readme = "README.md"
 requires-python = ">=3.14"
+license = "MIT"
+license-files = ["LICENSES/*", "THIRD_PARTY_NOTICES.md", "LICENSE"]
 dependencies = [
     "fastapi==0.143.3",
     "uvicorn>=0.38,<1",

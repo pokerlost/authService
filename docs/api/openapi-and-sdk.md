@@ -32,5 +32,8 @@ They perform ordinary SDK calls when their endpoints exist and never return synt
 
 Inter-service calls use `PokerlostClient` and generated `PokerlostMethod` classes. Every call
 serializes `PokerlostRequest`; protected calls pass through retry then authorization middleware,
-which adds only the bearer header internally. The complete lifecycle is in
+which adds the bearer credential internally. Explicit gateway targets also set
+`PokerlostAPIServer(service_id=ServiceId.AUTH, ...)`; the SDK adds the registered
+`x-pokerlost-serviceId` routing header independently of scopes/audience. Direct
+service origins retain the default `service_id=None`. The complete lifecycle is in
 `docs/architecture/inter-service-clients.md`.
