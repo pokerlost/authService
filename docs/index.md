@@ -30,6 +30,9 @@ development workflows.
 
 ## Development
 
+- `docs/development.md` — native local CI and source-bound reports.
+- `docs/versioning.md` — application/template versions and compatibility.
+- `docs/releases.md` — checked releases and immutable tags.
 - `docs/development/commands.md` — commands.
 - `docs/development/contributing.md` — contributing.
 - `docs/development/python-style.md` — Python style.

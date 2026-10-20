@@ -4,7 +4,10 @@
 PostgreSQL wiring and historical revisions, but token and grant operations are planned in
 [SERVICE.md](SERVICE.md) and absent from the current runtime.
 
-Read `docs/index.md` for the complete guide and `AGENTS.md` for normative engineering rules. Python
+Read the [documentation index](docs/index.md) for the complete guide,
+[contribution guide](CONTRIBUTING.md) for checks and update ownership, and
+[local contribution workflow](docs/development/contributing.md) for review scope.
+`AGENTS.md` defines normative engineering rules. Python
 3.14 or newer is required.
 
 ## 🚀 Install and run
@@ -74,11 +77,18 @@ a full reviewed SHA and the SDK-only App approval gate; skipped runtime checks d
 
 ## Docker verification
 
+`make ci-local` runs source checks, installed-package acceptance and artifact
+validation. `make version` reports application/chart versions; `make release-check`
+validates built outputs. New wheel, sdist and chart files share
+`dist/<source-content-sha256>/`, preserving prior rollback artifacts. After a
+successful online run, `make ci-local OFFLINE=1` requires the same prepared
+source, installed image and optional database images, then executes fresh tests.
+
 `make source` parses the required frozen lock, checks formatting/lint and compiles source using
 public Docker tools without installing the SDK. It does not verify runtime types or tests.
 After approved SDK access, `make check build verify image` uses the canonical Docker graph;
 provide the short-lived token only with `DOCKER_BUILD_ARGS='--secret id=sdk_token,env=SDK_APP_TOKEN'`.
-`check` runs strict static checks and the enabled source suite once; a persistence source run requires an explicitly disposable `TEST_DATABASE_URL` and `QUALITY_NETWORK=host`; `verify` freshly tests the installed wheel and any
+`check` runs strict static checks and the enabled source suite once; a persistence source run uses a unique disposable Compose database; `verify` freshly tests the installed wheel and any
 enabled disposable PostgreSQL profile, with separate `coverage/installed/` reports. `make coverage`
 reads current source reports without rerunning tests. Below 100% warns; assertions, types,
 build/configuration/access and invalid/stale report errors fail.
