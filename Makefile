@@ -4,12 +4,28 @@ QUALITY_IMAGE := authservice:quality
 QUALITY_EXTRA_TARGETS :=
 BUILD_DOCKERFILE := Dockerfile.quality
 QUALITY_RUN_ARGS += --env TEST_DATABASE_URL --env DATABASE_URL
+INSTALLED_TEST_IMAGE := authservice:test
+# Keep prior rollback artifacts; every checked source owns a separate directory.
+PYTHON_ARTIFACT_DIR = dist/$(shell sed -n 's/.*"contentSha256":"\([a-f0-9]*\)".*/\1/p' $(REPORT_DIR)/source.json)
+ifeq ($(OFFLINE),1)
+BUILD_COMMAND = $(RELEASE_CHECK_COMMAND)
+else
+BUILD_COMMAND = $(DOCKER) buildx build --file $(BUILD_DOCKERFILE) $(DOCKER_BUILD_ARGS) $(LOCAL_BUILD_NETWORK) --target $(ARTIFACT_TARGET) --output type=local,dest=$(PYTHON_ARTIFACT_DIR) .
+endif
+BUILD_RECEIPT_COMMAND = $(QUALITY_RUN) python docker/release.py capture-build --artifact-dir "$(PYTHON_ARTIFACT_DIR)"
+RELEASE_CHECK_COMMAND = $(QUALITY_RUN) python docker/release.py release-check --artifact-dir "$(PYTHON_ARTIFACT_DIR)"
+OFFLINE_PREFLIGHT_COMMAND = $(MAKE) python-offline-preflight database-offline-preflight
+.PHONY: database-offline-preflight
+database-offline-preflight:
+	@images="$$(docker compose --env-file /dev/null -f compose.test.yaml config --images)" || exit 2; \
+	  test -n "$$images" || exit 2; \
+	  printf "%s\n" "$$images" | while IFS= read -r image; do docker image inspect "$$image" >/dev/null || { echo "BLOCKED: prepare the Compose images online first." >&2; exit 2; }; done
 QUALITY_TEST_COMMAND = $(MAKE) source-tests QUALITY_TEST="$(QUALITY_TEST)"
 .PHONY: source-tests
 source-tests: ## Run source checks against a unique disposable Compose database.
 	@set -eu; project="authservicesource$$(date +%s)$$$$"; \
 	trap 'docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" down --volumes --remove-orphans' EXIT HUP INT TERM; \
-	TEST_UID="$$(id -u)" TEST_GID="$$(id -g)" QUALITY_TEST="$(QUALITY_TEST)" docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" up --abort-on-container-exit --exit-code-from quality quality
+	UV_OFFLINE="$(if $(filter 1,$(OFFLINE)),true,false)" TEST_UID="$$(id -u)" TEST_GID="$$(id -g)" QUALITY_TEST="$(QUALITY_TEST)" docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" up $(if $(filter 1,$(OFFLINE)),--pull never,) --abort-on-container-exit --exit-code-from quality quality
 
 .PHONY: run
 run:
@@ -17,15 +33,16 @@ run:
 QUALITY_EXTRA_TARGETS := chart-check
 CI_LOCAL_TARGETS := check coverage build verify chart release-check
 VERSION_COMMAND = $(QUALITY_RUN) python -m docker.chart_release version
-RELEASE_CHECK_COMMAND = $(QUALITY_RUN) python -m docker.chart_release release-check
+RELEASE_CHECK_COMMAND = $(QUALITY_RUN) python -m docker.chart_release release-check --artifact-dir "$(PYTHON_ARTIFACT_DIR)"
 .PHONY: chart
 chart: quality-image
-	$(QUALITY_RUN) make chart
+	$(QUALITY_RUN) make chart ARTIFACT_DIR="$(PYTHON_ARTIFACT_DIR)"
 
 QUALITY_DOCKERFILE := Dockerfile
+BUILD_DOCKERFILE := $(QUALITY_DOCKERFILE)
 RUNTIME_IMAGE := authservice:candidate
-BUILD_DOCKERFILE := Dockerfile
-VERIFY_COMMAND = $(MAKE) CONTAINERIZED=1 test-image && $(QUALITY_RUN) python docker/coverage_report.py coverage/installed/coverage.json --after coverage/installed/.started --output coverage/installed/summary.md
+
+VERIFY_COMMAND = $(if $(filter 1,$(OFFLINE)),$(OFFLINE_PREFLIGHT_COMMAND) &&,) $(MAKE) CONTAINERIZED=1 test-image && $(QUALITY_RUN) python docker/coverage_report.py coverage/installed/coverage.json --after coverage/installed/.started --output coverage/installed/summary.md
 verify: quality-image
 .PHONY: chart deploy-local undeploy-local
 deploy-local undeploy-local:
@@ -97,12 +114,17 @@ test-integration: ## Verify real PostgreSQL; TEST_DATABASE_URL must point to a d
 .PHONY: test-image
 test-image: ## Run installed-wheel tests in a disposable container and, when enabled, PostgreSQL.
 	@mkdir -p coverage/installed
-	docker buildx build $(DOCKER_BUILD_ARGS) $(LOCAL_BUILD_NETWORK) --target test --load --tag authservice:test .
+ifneq ($(OFFLINE),1)
+	docker buildx build $(DOCKER_BUILD_ARGS) $(LOCAL_BUILD_NETWORK) --file Dockerfile --target test --load --tag authservice:test .
+endif
 	@touch coverage/installed/.started
 	@set -eu; project="authservicetest$$(date +%s)$$$$"; \
 	trap 'docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" down --volumes --remove-orphans' EXIT HUP INT TERM; \
-	TEST_UID="$$(id -u)" TEST_GID="$$(id -g)" docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" up --abort-on-container-exit --exit-code-from tests tests
+	UV_OFFLINE="$(if $(filter 1,$(OFFLINE)),true,false)" TEST_UID="$$(id -u)" TEST_GID="$$(id -g)" docker compose --env-file /dev/null -f compose.test.yaml -p "$$project" up $(if $(filter 1,$(OFFLINE)),--pull never,) --abort-on-container-exit --exit-code-from tests tests
+	@cp coverage/source.json coverage/installed/source.json
+	@docker image inspect authservice:test --format '{{.Id}}' > coverage/installed/test-image-id.txt
 
+ARTIFACT_DIR ?= dist
 HELM ?= helm
 KIND ?= kind
 KUBECTL ?= kubectl
@@ -112,8 +134,8 @@ KIND_IMAGE := kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a2659
 .PHONY: chart chart-check
 check: chart-check
 chart: ## Package the managed shared chart as a deployable artifact.
-	$(HELM) package deploy/chart --destination dist/charts --app-version "$$($(UV) run --locked python -m docker.chart_release app-version)"
-	$(UV) run --locked python -m docker.chart_release capture
+	$(HELM) package deploy/chart --destination "$(ARTIFACT_DIR)/charts" --app-version "$$($(UV) run --locked python -m docker.chart_release app-version)"
+	$(UV) run --locked python -m docker.chart_release capture --artifact-dir "$(ARTIFACT_DIR)"
 
 chart-check: ## Check chart templates and schema with explicit validation-only values.
 	$(HELM) lint deploy/chart --strict --set image.repository=validation.invalid/application --set image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
