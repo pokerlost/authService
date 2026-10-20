@@ -4,7 +4,10 @@
 PostgreSQL wiring and historical revisions, but token and grant operations are planned in
 [SERVICE.md](SERVICE.md) and absent from the current runtime.
 
-Read `docs/index.md` for the complete guide and `AGENTS.md` for normative engineering rules. Python
+Read the [documentation index](docs/index.md) for the complete guide,
+[contribution guide](CONTRIBUTING.md) for checks and update ownership, and
+[local contribution workflow](docs/development/contributing.md) for review scope.
+`AGENTS.md` defines normative engineering rules. Python
 3.14 or newer is required.
 
 ## 🚀 Install and run

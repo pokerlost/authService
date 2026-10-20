@@ -160,8 +160,8 @@ PokerlostRetryMiddleware
 - Never capture or log request/response bodies containing `client_secret`, `access_token`,
   `refresh_token`, passwords, login grants, or private keys.
 - Keep FastAPI instrumentation body capture disabled and HTTP client debug logging disabled.
-- Generate request IDs only on the server. Do not read or return request-correlation transport
-  metadata as a public contract.
+- Accept only bounded validated `X-Request-ID` values; generate an ID when absent or invalid,
+  propagate it through the response, and never log request bodies or credentials.
 
 ## Configuration and deployment
 
