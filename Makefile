@@ -2,6 +2,9 @@ ifneq ($(CONTAINERIZED),1)
 QUALITY_IMAGE := authservice:quality
 BUILD_DOCKERFILE := Dockerfile.quality
 QUALITY_RUN_ARGS += --env TEST_DATABASE_URL --env DATABASE_URL
+.PHONY: run
+run:
+	$(MAKE) CONTAINERIZED=1 run
 QUALITY_EXTRA_TARGETS := docs-check format-check chart-check
 
 QUALITY_DOCKERFILE := Dockerfile
@@ -70,7 +73,7 @@ HTTP_PORT ?= 8000
 UVICORN_FLAGS ?=
 
 run: ## Run the application on loopback without rebuilding.
-	$(UV) run --locked uvicorn authservice.app:create_app --factory --host "$(HTTP_HOST)" --port "$(HTTP_PORT)" $(UVICORN_FLAGS)
+	$(UV) run --locked uvicorn authservice.app:create_app --factory --host "$(HTTP_HOST)" --port "$(HTTP_PORT)" --no-server-header --no-access-log --log-config app_logging.json --workers 1 $(UVICORN_FLAGS)
 
 .PHONY: test-integration
 test-integration: ## Verify real PostgreSQL; TEST_DATABASE_URL must point to a disposable DB.
