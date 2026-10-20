@@ -31,8 +31,9 @@ to that source. Do not place credentials or private keys in this repository.
 | `GET` | `/health/ready` | infrastructure | required database readiness |
 
 These public infrastructure endpoints accept no body or authentication. Every business operation
-uses `POST /<operationId>` and a typed `PokerlostRequest` JSON body. Protected calls add only the
-standard `Authorization: Bearer <access-token>` header.
+uses `POST /<operationId>` and a typed `PokerlostRequest` JSON body. Protected calls carry credentials only in the
+standard `Authorization: Bearer <access-token>` header. Gateway targets also use
+the explicit `x-pokerlost-serviceId` routing header; it grants no permissions.
 
 The pristine service includes an empty exact-scope catalog and a local-verifier port, but no fake
 verifier, outbound client, credential, token store, or retry configuration. See
@@ -86,3 +87,12 @@ Private SDK acceptance follows the [reviewed-source admission guide](.github/doc
 The trusted default-branch workflow uses a separately admitted full source SHA; integrated
 commits do not need an open PR. This is the approved solo-owner review model, not independent
 environment approval. Ordinary source checks do not establish runtime acceptance.
+## 📊 Telemetry and license
+
+The runtime's `app_logging.json` selects bounded JSON logs, safe exception classes
+and correlated request IDs. `/metrics` is internal; platformInfra owns collection
+and dashboards. The container uses one worker; scale replicas. For direct local
+Uvicorn, pass `--no-access-log --log-config app_logging.json --workers 1`.
+
+Original code uses [MIT](LICENSE); retain [scaffold/dependency notices](THIRD_PARTY_NOTICES.md).
+Copier records the explicit MIT holder/year and preserves owner license files.
