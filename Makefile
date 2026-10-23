@@ -1,3 +1,12 @@
+ifeq ($(CONTAINERIZED),1)
+RUFF ?= ruff
+else
+RUFF ?= uvx --from ruff==0.16.4 ruff
+endif
+# Quick dev commands never prepare a product/build image.
+ifneq ($(filter lint format format-check check,$(MAKECMDGOALS)),)
+override CONTAINERIZED := 1
+endif
 ifneq ($(CONTAINERIZED),1)
 QUALITY_IMAGE := authservice:quality
 # Generated check owns its complete graph; opt into extras only when defined.
@@ -31,7 +40,7 @@ source-tests: ## Run source checks against a unique disposable Compose database.
 run:
 	$(MAKE) CONTAINERIZED=1 run
 QUALITY_EXTRA_TARGETS := chart-check
-CI_LOCAL_TARGETS := check coverage build verify chart release-check
+CI_LOCAL_TARGETS := acceptance coverage build verify chart release-check
 VERSION_COMMAND = $(QUALITY_RUN) python -m docker.chart_release version
 RELEASE_CHECK_COMMAND = $(QUALITY_RUN) python -m docker.chart_release release-check --artifact-dir "$(PYTHON_ARTIFACT_DIR)"
 .PHONY: chart
@@ -55,6 +64,8 @@ source:
 	$(DOCKER) buildx build --file Dockerfile.source --build-arg REQUIRE_LOCK=$(SOURCE_REQUIRE_LOCK) --target source --load --tag authservice:source $(QUALITY_BUILD_ARGS) .
 	$(DOCKER) run --init --rm --read-only --network none --tmpfs /tmp:rw,mode=1777 --user "$$(id -u):$$(id -g)" authservice:source
 
+QUALITY_EXTRA_TARGETS += acceptance
+CI_LOCAL_TARGETS ?= acceptance coverage build verify release-check
 include docker/quality-python.mk
 else
 .DEFAULT_GOAL := help
@@ -69,12 +80,12 @@ install: ## Install the locked development environment.
 	$(UV) sync --locked
 
 format: ## Format owned Python sources.
-	$(UV) run --locked ruff check --fix .
-	$(UV) run --locked ruff format .
+	$(RUFF) check --fix .
+	$(RUFF) format .
 
 lint: ## Check formatting and lint without modifying files.
-	$(UV) run --locked ruff check .
-	$(UV) run --locked ruff format --check .
+	$(RUFF) check .
+	$(RUFF) format --check .
 
 typecheck: ## Check strict Python types.
 	$(UV) run --locked mypy
@@ -87,7 +98,9 @@ test: ## Measure integration and isolated tests together without stale coverage.
 	$(UV) run --locked pytest --junitxml=coverage/junit.xml --cov --cov-append --cov-report=term-missing --cov-report=json --cov-report=xml
 
 
-check: lint typecheck test ## Run the mandatory non-mutating checks.
+check: lint ## Fast lint-only gate; no tests/build.
+
+acceptance: lint typecheck test ## Run the mandatory non-mutating checks.
 	$(UV) lock --check
 
 build: ## Export the wheel and sdist from the canonical container build.
@@ -132,7 +145,7 @@ KUBECONFIG_LOCAL ?= $(CURDIR)/.local/kubeconfig
 KIND_IMAGE := kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
 
 .PHONY: chart chart-check
-check: chart-check
+acceptance: chart-check
 chart: ## Package the managed shared chart as a deployable artifact.
 	$(HELM) package deploy/chart --destination "$(ARTIFACT_DIR)/charts" --app-version "$$($(UV) run --locked python -m docker.chart_release app-version)"
 	$(UV) run --locked python -m docker.chart_release capture --artifact-dir "$(ARTIFACT_DIR)"
@@ -161,3 +174,10 @@ undeploy-local: ## Delete only this application's disposable Kind cluster.
 -include Makefile.local
 
 endif
+
+.PHONY: dev-policy-help
+help: dev-policy-help
+dev-policy-help:
+	@printf '%s\n' 'Daily: make lint; explicit git push origin dev.' \
+	  'Manual only: test, typecheck, coverage, build, acceptance, ci-local.' \
+	  'Native lint tools must be installed; lint never syncs/builds the application.'
