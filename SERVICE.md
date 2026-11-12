@@ -4,7 +4,7 @@
 
 ## 🧭 Foundation available
 
-The current `serviceTemplate` supplies FastAPI composition, typed settings, safe Pokerlost errors, optional bearer-verifier port, PostgreSQL engine/session ownership, Alembic, logging, Docker and Helm. `GET /`, `GET /getOpenApi`, and health probes are the only routes. The scope catalog is empty. No client/principal entity, token signer, `getToken` handler, operator bootstrap, private-key requirement, protected route or outbound SDK client is active.
+The current `serviceTemplate` supplies FastAPI composition, typed settings, safe Pokerlost errors, optional bearer-verifier port, PostgreSQL engine/session ownership, Alembic, logging, Docker and Helm. `GET /`, `GET /getOpenApi`, `GET /health/live`, and `GET /health/ready` are core infrastructure routes. Optional internal `GET /metrics` is enabled by default and excluded from OpenAPI. The scope catalog is empty. No client/principal entity, token signer, `getToken` handler, operator bootstrap, private-key requirement, protected route or outbound SDK client is active.
 
 Runtime source lives in `src/authservice/`. Rules, the empty exact scope catalog, and the five historical revisions in `migrations/versions/` are project-owned. Historical revisions remain unchanged; moving source files does not apply a database migration or establish release status.
 
