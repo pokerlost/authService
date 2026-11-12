@@ -6,9 +6,9 @@
 
 The current `serviceTemplate` supplies FastAPI composition, typed settings, safe Pokerlost errors, optional bearer-verifier port, PostgreSQL engine/session ownership, Alembic, logging, Docker and Helm. `GET /`, `GET /getOpenApi`, and health probes are the only routes. The scope catalog is empty. No client/principal entity, token signer, `getToken` handler, operator bootstrap, private-key requirement, protected route or outbound SDK client is active.
 
-The committed `serviceTemplate` source has been applied to `src/authService/` after the earlier foundation cleanup. Project-owned rules, the empty exact scope catalog, and historical revisions were preserved; the five revision files moved byte-for-byte into `migrations/versions/`. This file migration is local and is not a release or a database upgrade. The retired flat `app/` implementation remains recoverable from the prior local commit and private backup.
+Runtime source lives in `src/authservice/`. Rules, the empty exact scope catalog, and the five historical revisions in `migrations/versions/` are project-owned. Historical revisions remain unchanged; moving source files does not apply a database migration or establish release status.
 
-Earlier Alembic revisions remain immutable historical artifacts. They may create authorization tables on a fresh database even though current ORM metadata is empty. Do not autogenerate a drop migration or run an upgrade against production as part of this cleanup. No live database was accessed.
+Earlier Alembic revisions remain immutable historical artifacts. They may create authorization tables on a fresh database even though current ORM metadata is empty. Do not autogenerate a drop migration or run an upgrade against production without a separately reviewed migration plan.
 
 ## 📦 Planned ownership
 
@@ -25,4 +25,4 @@ These are requirements for a future token implementation, **not current runtime 
 - The prior candidate used short-lived RS256 tokens with a key of at least 2048 bits and a `kid`; signing material stays outside source and is never copied into an image. Revalidate the policy at implementation time. No PyJWT dependency or key mount is present now.
 - A public token operation does not accept an access-token bearer header as a substitute for its own client credentials. Future refresh, JWKS, session and revocation routes remain separate stages.
 
-See the [current public surface](docs/api/public-surface.md) and [planned credential flow](docs/architecture/service-client-credentials.md). The private backup records removed code and configuration; it is not a database rollback plan.
+See the [current public surface](docs/api/public-surface.md) and [planned credential flow](docs/architecture/service-client-credentials.md). Restoring earlier source code is not a database rollback plan.
