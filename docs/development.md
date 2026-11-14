@@ -19,3 +19,6 @@ branches, including documentation changes. Push runs keep distinct concurrency
 groups so a later push cannot cancel an earlier event's checks. Only superseded
 pull-request checks are canceled. Contributions follow working branch → `test` →
 `dev` → `main`; new working branches use one lowerCamelCase identifier.
+
+See [runtime environments](environments.md) for the separate deployment and telemetry
+settings. Environment selection does not replace the complete checks above.
