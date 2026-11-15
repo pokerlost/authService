@@ -1,0 +1,9 @@
+[
+  "tests/foundation/database_integration.py::test_real_readiness_and_transaction_ownership",
+  "tests/database_integration.py::test_real_database_readiness",
+  "tests/migrations_integration.py::test_empty_historical_chain_round_trip",
+  "tests/migrations_integration.py::test_grants_and_audiences_survive_role_conversion",
+  "tests/migrations_integration.py::test_lossy_human_downgrade_is_atomic",
+  "tests/migrations_integration.py::test_scope_catalog_failure_preserves_legacy_schema[UPDATE oauth_scopes SET name='custom.read' WHERE id='20000000-0000-4000-8000-000000000001'-was not found exactly once]",
+  "tests/migrations_integration.py::test_scope_catalog_failure_preserves_legacy_schema[INSERT INTO oauth_scopes (name, description) VALUES ('accounts.self.getMe', 'Synthetic collision')-already exists]"
+]
