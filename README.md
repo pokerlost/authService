@@ -12,17 +12,18 @@ Read the [documentation index](docs/index.md) for the complete guide,
 
 ## 🚀 Install and run
 
-The mandatory private `pypokerlost` dependency requires GitHub SSH read access:
+The mandatory pinned `pypokerlost` dependency uses the configured GitHub SSH transport:
 
 ```bash
 uv sync --locked
 make run
 ```
 
-Supply `DATABASE_URL` through the process environment or a managed secret before startup. The
-service validates the URL at factory creation; it does not load `.env` at import or connect until
-its lifespan/readiness path. The lock pins the private SDK source; installation requires access
-to that source. Do not place credentials or private keys in this repository.
+Supply `DATABASE_URL` with a `postgresql+asyncpg://` DSN through the process environment or a
+managed secret before startup. The service validates the URL at factory creation; it does not load
+`.env` at import or connect until its lifespan/readiness path. The lock pins the SDK source;
+installation requires access to that source. Do not place credentials or private keys in this
+repository.
 
 ## Base endpoints
 
